@@ -1,2 +1,8 @@
 # logging
 /logs
+
+# settings
+/settings.ini
+
+# ide
+__pycache__/

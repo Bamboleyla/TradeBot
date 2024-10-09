@@ -2,6 +2,7 @@ import logging
 import os
 
 from logging.handlers import RotatingFileHandler
+from configuration.configuration import ProgramConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -37,3 +38,11 @@ if __name__ == "__main__":
     prepare_logs()
 
     logger.info("Program start")
+
+    try:
+        # Load configuration
+        config = ProgramConfiguration("settings.ini")
+        logger.info("Configuration has been loaded")
+
+    except Exception as ex:
+        logger.critical("Load configuration error: %s", repr(ex))
