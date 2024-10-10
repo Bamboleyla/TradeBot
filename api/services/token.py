@@ -2,7 +2,8 @@ import logging
 import requests
 
 from json import JSONDecodeError
-from datetime import datetime, date
+from datetime import datetime
+from typing import Union
 from configuration.configuration import ProgramConfiguration
 
 __all__ = "AlorTokenService"
@@ -19,20 +20,17 @@ class AlorTokenService:
         This method reads configuration from file "settings.ini" and load
         the following settings into the instance:
 
-        - ttl_jwt_token: Time to live for JWT token in seconds
-        - refresh_token: None - because first we need to get it from ALOR
         - url_oauth: URL for ALOR for getting JWT token
+        - token: ALOR refresh token
 
         :return: An instance of AlorTokenService
         """
+        config = ProgramConfiguration()  # Load configuration
 
-        config = ProgramConfiguration("settings.ini")  # Load configuration
+        self.url_oauth = config.url_oauth
+        self.token = config.token
 
-        self._ttl_jwt_token = config.ttl_jwt_token  # time to live for JWT token in seconds
-        self.refresh_token = None  # because first we need to get it from ALOR
-        self.url_oauth = config.url_oauth  # URL for ALOR for getting JWT token
-
-    def _get_jwt_token(self):
+    def get_access_token(self) -> dict[str, Union[str, int]]:
         """
         Get a JWT token from ALOR by using refresh token.
 
@@ -44,22 +42,20 @@ class AlorTokenService:
 
         :return: A JWT token as a string, or None if an error occurred
         """
-        payload = {"token": self.refresh_token}
+        payload = {"token": self.token}
         response = requests.post(url=f"{self.url_oauth}/refresh", params=payload)
 
         try:
             if response.status_code == 200:
                 res_json = response.json()
-                jwt = res_json.get("AccessToken")
-                self.token_ttl = int(datetime.timestamp(datetime.now()))  # time to live for JWT token in seconds
-                logger.info(f"JWT токен получен успешно: {jwt}")
-                return jwt
+                access_token: str = res_json.get("AccessToken")
+                logger.info(f"JWT received: {access_token}")
+                return {"access_token": access_token, "created_at": int(datetime.now().timestamp())}
+
             else:
-                logger.error(f"Ошибка получения JWT токена: {response.status_code}")
+                logger.error(f"JWT return Error: {response.status_code}")
                 return None
 
         except JSONDecodeError as e:  # JSONDecodeError is raised if the response is not in JSON format
-
-            logger.error(f"Ошибка декодирования JWT токена: {e}")
+            logger.error(f"JWT decoding error: {e}")
             return None
-

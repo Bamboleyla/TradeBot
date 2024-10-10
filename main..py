@@ -1,8 +1,9 @@
 import logging
 import os
+import asyncio
 
 from logging.handlers import RotatingFileHandler
-from configuration.configuration import ProgramConfiguration
+from api.services.client import AlorClientService
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +37,11 @@ def prepare_logs() -> None:
 if __name__ == "__main__":
     # Prepare logging system
     prepare_logs()
-
     logger.info("Program start")
 
     try:
-        # Load configuration
-        config = ProgramConfiguration("settings.ini")
-        logger.info("Configuration has been loaded")
+        client = AlorClientService()
+        asyncio.run(client.create_subscription_for_order_book())
 
     except Exception as ex:
         logger.critical("Load configuration error: %s", repr(ex))
