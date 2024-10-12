@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     try:
         client = AlorClientService()
-        asyncio.run(client.create_subscription_for_order_book())
+        asyncio.run(client.create_subscription_for_order_book('SBER'))
 
     except Exception as ex:
         logger.critical("Load configuration error: %s", repr(ex))

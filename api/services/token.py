@@ -4,7 +4,7 @@ import requests
 from json import JSONDecodeError
 from datetime import datetime
 from typing import Union
-from configuration.configuration import ProgramConfiguration
+from configurations.alor import AlorConfiguration
 
 __all__ = "AlorTokenService"
 
@@ -20,12 +20,10 @@ class AlorTokenService:
         This method reads configuration from file "settings.ini" and load
         the following settings into the instance:
 
-        - url_oauth: URL for ALOR for getting JWT token
-        - token: ALOR refresh token
-
-        :return: An instance of AlorTokenService
+        - url_oauth: URL for ALOR OAuth service
+        - token: refresh token for ALOR
         """
-        config = ProgramConfiguration()  # Load configuration
+        config = AlorConfiguration()  # Load configuration
 
         self.url_oauth = config.url_oauth
         self.token = config.token
