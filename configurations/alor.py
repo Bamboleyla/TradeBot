@@ -1,7 +1,8 @@
 import logging
 
-from configparser import ConfigParser
+from settings import alor
 from datetime import datetime, date
+from typing import Literal
 
 __all__ = "AlorConfiguration"
 
@@ -28,18 +29,16 @@ class AlorConfiguration:
 
         :return: An instance of AlorConfiguration
         """
-        config = ConfigParser()
-        config.read('settings.ini')
 
-        self.__mode = config['ALOR']["MODE"]
-        self.__token = config['ALOR']["TOKEN"]
-        self.__ttl_jwt: int = config['ALOR']["TTL_JWT"]
-        self.__url_oauth = config['ALOR']["URL_OAUTH"]
-        self.__open: int = config['ALOR']["OPEN"]
-        self.__close: int = config['ALOR']["CLOSE"]
-        self.__work_days: list = config['ALOR']["WORK_DAYS"]
-        self.__websocket_url = config['ALOR']["WEBSOCKET_URL"]
-        self.__websocket_dev_url = config['ALOR']["WEBSOCKET_DEV_URL"]
+        self.__mode: Literal['dev', 'prod'] = alor['mode']
+        self.__token: str = alor['token']
+        self.__ttl_jwt: int = alor['ttl_jwt']
+        self.__url_oauth: str = alor['url_oauth']
+        self.__open: int = alor['open']
+        self.__close: int = alor['close']
+        self.__work_days: list = alor['work_days']
+        self.__websocket_url: str = alor['websocket_url']
+        self.__websocket_dev_url: str = alor['websocket_url_dev']
 
     @property
     def token(self) -> str:

@@ -28,7 +28,7 @@ class AlorTokenService:
         self.url_oauth = config.url_oauth
         self.token = config.token
 
-    def get_access_token(self) -> dict[str, Union[str, int]]:
+    def get_access_token(self) -> dict[str, Union[str, None]]:
         """
         Get a JWT token from ALOR by using refresh token.
 

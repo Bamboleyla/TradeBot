@@ -1,4 +1,4 @@
-from configparser import ConfigParser
+from settings import program
 
 __all__ = "ProgramConfiguration"
 
@@ -17,11 +17,8 @@ class ProgramConfiguration:
 
         :return: An instance of ProgramConfiguration
         """
-        config = ConfigParser()
-        config.read('settings.ini')
-
-        self.__broker = config['PROGRAM']["BROKER"]
-        self.__blog: bool = config['PROGRAM']["BLOG"]  # use blog or not
+        self.__broker: str = program['broker']
+        self.__blog: bool = program['blog']
 
     @property
     def broker(self) -> str:

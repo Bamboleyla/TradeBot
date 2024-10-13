@@ -36,10 +36,14 @@ class AlorClientService:
         self.access_token = token.get_access_token()['access_token']
         self.guid = uuid.uuid4().hex
         self.ws_url = config.websocket_url
+        self.is_work = config.is_work
 
-    async def create_subscription_for_order_book(self, ticker: TickerType):
+    async def create_subscription_for_order_book(self, ticker: TickerType) -> None:
         if self.access_token is None:
             logger.error("No access token")
+            return
+        elif not self.is_work:
+            logger.error("ALOR broker is not working")
             return
 
         else:

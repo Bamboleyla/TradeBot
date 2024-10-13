@@ -2,7 +2,7 @@
 /logs
 
 # settings
-/settings.ini
+/settings.py
 
 # ide
 __pycache__/
