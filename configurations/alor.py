@@ -1,7 +1,7 @@
 import logging
 
 from settings import alor
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import Literal
 
 __all__ = "AlorConfiguration"
@@ -30,38 +30,22 @@ class AlorConfiguration:
         :return: An instance of AlorConfiguration
         """
 
-        self.__mode: Literal['dev', 'prod'] = alor['mode']
-        self.__token: str = alor['token']
-        self.__ttl_jwt: int = alor['ttl_jwt']
-        self.__url_oauth: str = alor['url_oauth']
-        self.__open: int = alor['open']
-        self.__close: int = alor['close']
-        self.__work_days: list = alor['work_days']
-        self.__websocket_url: str = alor['websocket_url']
-        self.__websocket_dev_url: str = alor['websocket_url_dev']
-
-    @property
-    def token(self) -> str:
-        return self.__token
-
-    @property
-    def ttl_jwt(self) -> int:
-        return self.__ttl_jwt
-
-    @property
-    def mode(self) -> str:
-        return self.__mode
-
-    @property
-    def url_oauth(self) -> str:
-        return self.__url_oauth
+        self.mode: Literal['dev', 'prod'] = alor['mode']
+        self.token: str = alor['token']
+        self.ttl_jwt: int = alor['ttl_jwt']
+        self.url_oauth: str = alor['url_oauth']
+        self.open: int = alor['open']
+        self.close: int = alor['close']
+        self.work_days: list = alor['work_days']
+        self.websocket_url: str = alor['websocket_url']
+        self.websocket_dev_url: str = alor['websocket_url_dev']
 
     @property
     def is_work(self) -> bool:
         now_weekday = date.today().weekday()
-        if now_weekday in self.__work_days:
+        if now_weekday in self.work_days:
             now_hour = datetime.now().hour
-            if self.__open <= now_hour < self.__close:
+            if self.open <= now_hour < self.close:
                 return True
 
             else:
@@ -73,9 +57,11 @@ class AlorConfiguration:
             return False
 
     @property
-    def websocket_url(self) -> str:
-        return self.__websocket_url
-
-    @property
-    def websocket_dev_url(self) -> str:
-        return self.__websocket_dev_url
+    def prev_work_day(self) -> date:
+        now_weekday = date.today().weekday()
+        if now_weekday == 0:
+            return date.today() - timedelta(days=3)
+        elif now_weekday == 6:
+            return date.today() - timedelta(days=2)
+        else:
+            return date.today() - timedelta(days=1)
