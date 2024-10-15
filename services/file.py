@@ -19,7 +19,7 @@ class FileService:
         :param directory: The directory where the file should be created
         :type directory: str
         """
-        file_path = os.path.join(directory, 'date.txt')  # create file with name "date.txt"
+        file_path = os.path.join(directory, 'data.txt')  # create file with name "data.txt"
         with open(file_path, 'w') as f:  # write first line
             f.write('<TICKER>,<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<VOL>\n')
 
@@ -35,7 +35,7 @@ class FileService:
         :return: The last date in the format "<DATE> <TIME>"
         :rtype: str
         """
-        file_path = os.path.join(directory, 'date.txt')  # get file with name "date.txt"
+        file_path = os.path.join(directory, 'data.txt')  # get file with name "data.txt"
         with open(file_path, 'r') as f:  # read file
             lines = f.readlines()  # read all lines
             last_line = lines[-1].strip()  # get last line
@@ -73,7 +73,7 @@ class FileService:
         :return: None
         :rtype: None
         """
-        with open(os.path.join(directory, 'date.txt'), 'a') as f:  # write new data to file
+        with open(os.path.join(directory, 'data.txt'), 'a') as f:  # write new data to file
             for item in data:  # for each item in data
                 json_item = json.loads(item)['data']  # convert item to json
                 date = datetime.fromtimestamp(json_item['time'], timezone.utc).astimezone(

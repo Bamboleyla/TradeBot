@@ -11,5 +11,5 @@ class HistoryService:
         pass
 
     def check_date_file(self, directory: str):
-        file_path = os.path.join(directory, 'date.txt')
+        file_path = os.path.join(directory, 'data.txt')
         return os.path.exists(file_path)

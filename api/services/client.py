@@ -85,6 +85,7 @@ class AlorClientService:
 
     async def ws_history_date(self, ticker: TickerType, start_date: str) -> List:
         start_date = datetime.strptime(start_date, "%Y%m%d %H%M%S")  # convert string to datetime
+        start_date += timedelta(minutes=5)  # add 5 minutes to the start date, because we need data from the past 5 minutes
         start_date = start_date.replace(tzinfo=timezone(timedelta(hours=3)))  # convert to UTC
         start_date = int(start_date.timestamp())  # convert to timestamp
 
