@@ -13,3 +13,6 @@ __pycache__/
 
 # DateSets
 data.txt
+
+# DataStrategies
+doubleST_data.txt

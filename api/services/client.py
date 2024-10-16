@@ -111,10 +111,10 @@ class AlorClientService:
                 try:
                     response = await websocket.recv()  # receive response
                     response_dict = json.loads(response)  # convert response to dictionary
+
                     if 'httpCode' in response_dict:  # check if response contains 'httpCode'
-                        if response_dict['httpCode'] == 200:  # check if 'httpCode' is 200
-                            if not websocket.closed:  # check if websocket is not closed
-                                await websocket.close()  # close websocket
+                        return responses  # return responses because httpCode is last field in response
+
                     responses.append(response)  # append response to list
                 except websockets.ConnectionClosed:
                     break
