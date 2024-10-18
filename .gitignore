@@ -12,7 +12,7 @@ __pycache__/
 /.venv
 
 # DateSets
-data.txt
+data.csv
 
 # DataStrategies
-doubleST_data.txt
+doubleST_data.csv

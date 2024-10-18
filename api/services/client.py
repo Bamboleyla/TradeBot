@@ -5,7 +5,7 @@ import json
 import asyncio
 
 from typing import Literal, List
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from configurations.alor import AlorConfiguration
 from api.services.token import AlorTokenService
 
@@ -83,11 +83,9 @@ class AlorClientService:
             except Exception as e:
                 logger.error('Error connecting to websocket: %s', e)
 
-    async def ws_history_date(self, ticker: TickerType, start_date: str) -> List:
-        start_date = datetime.strptime(start_date, "%Y%m%d %H%M%S")  # convert string to datetime
+    async def ws_history_date(self, ticker: TickerType, start_date: datetime) -> List:
+
         start_date += timedelta(minutes=5)  # add 5 minutes to the start date, because we need data from the past 5 minutes
-        start_date = start_date.replace(tzinfo=timezone(timedelta(hours=3)))  # convert to UTC
-        start_date = int(start_date.timestamp())  # convert to timestamp
 
         responses = []  # list to store responses
 
@@ -96,7 +94,7 @@ class AlorClientService:
                 "opcode": "BarsGetAndSubscribe",
                 "code": ticker,
                 "tf": "300",
-                "from": start_date,
+                "from": start_date.timestamp(),
                 "delayed": False,
                 "skipHistory": False,
                 "exchange": "MOEX",

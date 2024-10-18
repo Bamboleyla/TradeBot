@@ -46,4 +46,4 @@ if __name__ == "__main__":
         asyncio.run(sber.run())
 
     except Exception as ex:
-        logger.critical("Load configuration error: %s", repr(ex))
+        logger.critical("SBER Manager thread error: %s", repr(ex))
