@@ -24,37 +24,31 @@ class SBER_Manager:
             file.create_data_file(self.__data_path)  # create date file in directory
             logger.info("Date file created")
 
-        df = pd.read_csv(self.__data_path, header=0)
+        quotes = pd.read_csv(self.__data_path, header=0)
 
         # get last date from file, if there is no data then it will be firs minute of first day of current month
-        last_date = file.get_last_date(df)
-        df.info()
+        last_date = file.get_last_date(quotes)
 
         client = AlorClientService()
 
         data = await client.ws_history_date(self.ticker, last_date)  # get data from last date to now
 
         if len(data) == 1:  # if data is empty
-            return df
+            return quotes
         else:
-            file.update_file(self.ticker, df, data,)  # update file
-            df.to_csv(self.__data_path, index=False)  # write df to file
-            return df
+            file.update_file(self.ticker, quotes, data,)  # update file
+            quotes.to_csv(self.__data_path, index=False)  # write quotes to file
+            return quotes
 
     async def run(self):
         logger.info("Start %s manager", self.ticker)
-        df = await self.__prepare()
+        quotes = await self.__prepare()
         logger.info(" %s manager prepared", self.ticker)
 
-        df['date'] = pd.to_datetime(df['date'], format='%Y%m%d %H:%M:%S')
-        df['ticker'] = df['ticker'].astype('category')
+        quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
+        quotes['ticker'] = quotes['ticker'].astype('category')
 
-        df.info()
-
-        df.set_index('date')
-        print(df)
-
-        double_st = DoubleST(self.__directory,)
+        double_st = DoubleST(self.__directory, quotes)
         is_buy = double_st.buy()
         is_sell = double_st.sell()
 
