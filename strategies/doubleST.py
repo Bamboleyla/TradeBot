@@ -2,7 +2,8 @@ import logging
 import os
 import pandas as pd
 
-from indicators.ema import EMA_Indicator
+from indicators.ema import EMA
+from indicators.super_trend import super_trend
 
 __all__ = "DoubleST_Strategy"
 
@@ -20,8 +21,9 @@ class DoubleST:
 
         date = pd.read_csv(self.__export_path, header=0)
 
-        ema = EMA_Indicator()
-        date = ema.run(5, quotes, date)
+        date = EMA(5, quotes, date)
+        date = super_trend(10, 3, quotes, date, 'ST3')
+        date = super_trend(20, 5, quotes, date, 'ST5')
 
         date.to_csv(self.__export_path, index=False)  # write date to file
 
