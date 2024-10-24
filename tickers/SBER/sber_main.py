@@ -18,6 +18,19 @@ class SBER_Manager:
         self.__data_path = os.path.join(self.__directory, 'data.csv')
 
     async def __prepare(self) -> pd.DataFrame:
+        """
+        Prepare and update the quotes DataFrame with historical data.
+
+        This asynchronous method performs the following steps:
+        - Checks if the data file exists. If not, creates it and logs the event.
+        - Reads the quotes from the data file into a DataFrame.
+        - Retrieves the last date from the quotes file or defaults to the first minute
+        of the first day of the current month if the file is empty.
+        - Fetches historical data from the AlorClientService starting from the last date.
+        - Updates the file with new data if available and returns the updated DataFrame.
+
+        :return: A pandas DataFrame containing the updated quotes data.
+        """
         file = FileService()
 
         if not os.path.exists(self.__data_path):  # if file doesn't exist
@@ -49,6 +62,7 @@ class SBER_Manager:
         quotes['ticker'] = quotes['ticker'].astype('category')
 
         double_st = DoubleST(self.__directory, quotes)
+        double_st.show(quotes)
         is_buy = double_st.buy()
         is_sell = double_st.sell()
 

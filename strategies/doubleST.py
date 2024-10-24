@@ -1,6 +1,7 @@
 import logging
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from indicators.ema import EMA
 from indicators.super_trend import super_trend
@@ -32,3 +33,15 @@ class DoubleST:
 
     def sell(self) -> bool:
         pass
+
+    def show(self, quotes: pd.DataFrame) -> None:
+        indicators = pd.read_csv(self.__export_path, header=0)
+
+        plt.plot(quotes['date'], quotes['close'], '--', linewidth=3)
+        plt.plot(quotes['date'], indicators['ST3'])
+        plt.plot(quotes['date'], indicators['ST5'])
+        plt.title('Double SuperTrend')
+        plt.xlabel('Date')
+        plt.ylabel('Close Price')
+        plt.grid(True)
+        plt.show()

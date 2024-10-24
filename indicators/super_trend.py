@@ -24,11 +24,11 @@ def super_trend(period: int, multiplier: int, quotes: pd.DataFrame, existing_dat
     trend['open'] = quotes['open']
     trend['upper'] = upper_band
     trend['lower'] = lower_band
-    trend['trend'] = 0
+    trend['trend'] = 0.00
 
     for index, row in trend.iterrows():
         if index == trend.index[0]:
-            trend.loc[index, 'trend'] = row['lower']
+            trend.loc[index, 'trend'] = row['lower'].round(2)
         else:
             prev_trend = trend.loc[index - 1, 'trend']
 
@@ -40,14 +40,14 @@ def super_trend(period: int, multiplier: int, quotes: pd.DataFrame, existing_dat
 
             if prev_trend < open:
                 if close < prev_trend:
-                    trend.loc[index, 'trend'] = row['upper']
+                    trend.loc[index, 'trend'] = row['upper'].round(2)
                 else:
-                    trend.loc[index, 'trend'] = lower
+                    trend.loc[index, 'trend'] = lower.round(2)
             else:
                 if close > prev_trend:
-                    trend.loc[index, 'trend'] = row['lower']
+                    trend.loc[index, 'trend'] = row['lower'].round(2)
                 else:
-                    trend.loc[index, 'trend'] = upper
+                    trend.loc[index, 'trend'] = upper.round(2)
 
     existing_data[column] = trend['trend']
 
