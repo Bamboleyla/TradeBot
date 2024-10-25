@@ -35,6 +35,12 @@ class DoubleST:
         pass
 
     def show(self, quotes: pd.DataFrame) -> None:
+        """
+        Show a plot of the quotes with the Double SuperTrend indicators.
+
+        :param quotes: A pandas DataFrame containing the quotes data with a 'date' column.
+        :return: None
+        """
         indicators = pd.read_csv(self.__export_path, header=0)
 
         plt.plot(quotes['date'], quotes['close'], '--', linewidth=3)
