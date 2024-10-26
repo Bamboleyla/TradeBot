@@ -1,7 +1,8 @@
 import logging
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+import finplot as fplt
 
 from indicators.ema import EMA
 from indicators.super_trend import super_trend
@@ -22,9 +23,9 @@ class DoubleST:
 
         date = pd.read_csv(self.__export_path, header=0)
 
-        date = EMA(5, quotes, date)
-        date = super_trend(10, 3, quotes, date, 'ST3')
-        date = super_trend(20, 5, quotes, date, 'ST5')
+        date = EMA(5, quotes, date)  # calculate EMA
+        date = super_trend(10, 3, quotes, date, 'ST3')  # calculate SuperTrend
+        date = super_trend(20, 5, quotes, date, 'ST5')  # calculate SuperTrend
 
         date.to_csv(self.__export_path, index=False)  # write date to file
 
@@ -35,19 +36,15 @@ class DoubleST:
         pass
 
     def show(self, quotes: pd.DataFrame) -> None:
-        """
-        Show a plot of the quotes with the Double SuperTrend indicators.
-
-        :param quotes: A pandas DataFrame containing the quotes data with a 'date' column.
-        :return: None
-        """
         indicators = pd.read_csv(self.__export_path, header=0)
+        quotes[['ST3', 'ST5', 'EMA']] = indicators[['ST3', 'ST5', 'EMA']]
+        quotes.set_index('date', inplace=True)
+        quotes.index = pd.to_datetime(quotes.index).tz_localize('Etc/GMT-5')
 
-        plt.plot(quotes['date'], quotes['close'], '--', linewidth=3)
-        plt.plot(quotes['date'], indicators['ST3'])
-        plt.plot(quotes['date'], indicators['ST5'])
-        plt.title('Double SuperTrend')
-        plt.xlabel('Date')
-        plt.ylabel('Close Price')
-        plt.grid(True)
-        plt.show()
+        fplt.candlestick_ochl(quotes[['open', 'close', 'high', 'low']])
+        fplt.plot(quotes['ST3'], legend='ST3')
+        fplt.plot(quotes['ST5'], legend='ST5')
+        fplt.plot(quotes['EMA'], legend='EMA')
+
+        fplt.add_legend('Double SuperTrend')
+        fplt.show()
