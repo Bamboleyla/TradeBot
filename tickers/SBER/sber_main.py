@@ -55,14 +55,19 @@ class SBER_Manager:
 
     async def run(self):
         logger.info("Start %s manager", self.ticker)
+
         quotes = await self.__prepare()
+
         logger.info(" %s manager prepared", self.ticker)
 
         quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
         quotes['ticker'] = quotes['ticker'].astype('category')
 
         double_st = DoubleST(self.__directory, quotes)
+
+        double_st.run(quotes)
         double_st.show(quotes)
+        # double_st.analyze(quotes)
         is_buy = double_st.buy()
         is_sell = double_st.sell()
 

@@ -14,24 +14,18 @@ def super_trend(period: int, multiplier: int, quotes: pd.DataFrame, existing_dat
 
     atr_data = ATR(period, quotes)  # calculate ATR
 
-    # prepare data for Super Trend calculation
-    upper_band = quotes['high'] + (multiplier * atr_data)
-    lower_band = quotes['low'] - (multiplier * atr_data)
-
     trend = pd.DataFrame(index=quotes.index)
     trend[['date', 'open', 'close']] = quotes[['date', 'open', 'close']]
-    trend['upper'] = upper_band
-    trend['lower'] = lower_band
+    trend['upper'] = quotes['high'] + (multiplier * atr_data)
+    trend['lower'] = quotes['low'] - (multiplier * atr_data)
     trend['trend'] = pd.Series(dtype='float64')
 
     # calculate SuperTrend
     for index, row in trend.iterrows():
-        if existing_data[column].isna().all():  # if all values are null, SuperTrend is lower band (start position SuperTrend)
-            trend.loc[index, 'trend'] = round(row['lower'], 2)
-        elif not pd.isna(existing_data.loc[index, column]):  # if not all values are null, use existing data
+        if not pd.isna(existing_data.loc[index, column]):  # if not all values are null, use existing data
             trend.loc[index, 'trend'] = existing_data.loc[index, column]
         else:
-            prev_trend = trend.loc[index - 1, 'trend']
+            prev_trend = row['lower'] if index == 0 else trend.loc[index - 1, 'trend']
 
             upper = min(prev_trend, row['upper'])
             lower = max(prev_trend, row['lower'])
@@ -44,12 +38,22 @@ def super_trend(period: int, multiplier: int, quotes: pd.DataFrame, existing_dat
                     trend.loc[index, 'trend'] = round(row['upper'], 2)
                 else:
                     trend.loc[index, 'trend'] = round(lower, 2)
-            else:
+            elif prev_trend > open:
                 if close > prev_trend:
                     trend.loc[index, 'trend'] = round(row['lower'], 2)
                 else:
                     trend.loc[index, 'trend'] = round(upper, 2)
-    # add SuperTrend to existing_data
-    existing_data[column] = pd.concat([existing_data[column][:first_nan_index], trend['trend'][period:]], ignore_index=True)
+            else:
+                if close < prev_trend:
+                    trend.loc[index, 'trend'] = round(row['upper'], 2)
+                else:
+                    trend.loc[index, 'trend'] = round(row['lower'], 2)
+
+    if first_nan_index - period > 0:  # if there is enough data, because the first nan is not in too early
+        # add SuperTrend to existing_data
+        existing_data[column] = pd.concat([existing_data[column][:first_nan_index], trend['trend'][period:]], ignore_index=True)
+
+    else:  # if there is not enough data, because the first nan is in too early
+        existing_data[column] = trend['trend']
 
     return existing_data

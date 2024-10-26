@@ -18,8 +18,10 @@ class DoubleST:
 
         if not os.path.exists(self.__export_path):
             with open(self.__export_path, 'w') as f:
-                f.write('ticker,date,ST3,ST5,EMA,BUY,SELL\n')
+                f.write('ticker,date,ST3,ST5,EMA\n')
             quotes[['ticker', 'date']].to_csv(self.__export_path, mode='a', header=False, index=False)
+
+    def run(self, quotes: pd.DataFrame) -> None:
 
         date = pd.read_csv(self.__export_path, header=0)
 
@@ -29,8 +31,8 @@ class DoubleST:
 
         date.to_csv(self.__export_path, index=False)  # write date to file
 
-    def buy(self) -> bool:
-        pass
+    def buy(self, close: float, st3: float, st5: float) -> bool:
+        return close > st3 and close < st5
 
     def sell(self) -> bool:
         pass
@@ -42,9 +44,15 @@ class DoubleST:
         quotes.index = pd.to_datetime(quotes.index).tz_localize('Etc/GMT-5')
 
         fplt.candlestick_ochl(quotes[['open', 'close', 'high', 'low']])
-        fplt.plot(quotes['ST3'], legend='ST3')
-        fplt.plot(quotes['ST5'], legend='ST5')
+        fplt.plot(quotes['ST3'], legend='ST3', width=2)
+        fplt.plot(quotes['ST5'], legend='ST5', width=2)
         fplt.plot(quotes['EMA'], legend='EMA')
 
         fplt.add_legend('Double SuperTrend')
         fplt.show()
+
+    def analyze(self, quotes: pd.DataFrame) -> None:
+        date = pd.read_csv(self.__export_path, header=0)
+        date[['close']] = quotes[['close']]
+        date['BUY'] = date.apply(lambda row: self.buy(row['close'], row['ST3'], row['ST5']), axis=1)
+        pass
