@@ -66,16 +66,5 @@ class SBER_Manager:
         double_st = DoubleST(self.__directory, quotes)
 
         double_st.run(quotes)
-        double_st.show(quotes)
-        # double_st.analyze(quotes)
-        is_buy = double_st.buy()
-        is_sell = double_st.sell()
-
-        if is_buy:
-            logger.info(f"{self.ticker} buy")
-
-        elif is_sell:
-            logger.info(f"{self.ticker} sell")
-
-        else:
-            logger.info(f"{self.ticker} nothing")
+        # double_st.show(quotes)
+        double_st.analyze(quotes)
