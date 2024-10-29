@@ -15,4 +15,4 @@ __pycache__/
 data.csv
 
 # DataStrategies
-doubleST_data.csv
+doubleST/

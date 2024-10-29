@@ -66,5 +66,4 @@ class SBER_Manager:
         double_st = DoubleST(self.__directory, quotes)
 
         double_st.run(quotes)
-        # double_st.show(quotes)
-        double_st.analyze(quotes)
+        double_st.show(quotes)
