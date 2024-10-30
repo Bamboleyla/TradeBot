@@ -21,33 +21,49 @@ def super_trend(period: int, multiplier: int, quotes: pd.DataFrame, existing_dat
     trend['trend'] = pd.Series(dtype='float64')
 
     # calculate SuperTrend
+    prev_trend = 'lower'
     for index, row in trend.iterrows():
         if not pd.isna(existing_data.loc[index, column]):  # if not all values are null, use existing data
             trend.loc[index, 'trend'] = existing_data.loc[index, column]
         else:
-            prev_trend = row['lower'] if index == 0 else trend.loc[index - 1, 'trend']
+            # prev_trend = row['lower'] if index == 0 else trend.loc[index - 1, 'trend']
 
-            upper = min(prev_trend, row['upper'])
-            lower = max(prev_trend, row['lower'])
+            upper = round(row['upper'], 2)if index == 0 else round(min(trend.loc[index - 1, 'trend'], row['upper']), 2)
+            lower = round(row['lower'], 2)if index == 0 else round(max(trend.loc[index - 1, 'trend'], row['lower']), 2)
 
             close = row['close']
             open = row['open']
 
-            if prev_trend < open:
-                if close < prev_trend:
+            if prev_trend == 'lower':
+                if open >= lower:
+                    if close >= lower:
+                        trend.loc[index, 'trend'] = lower
+                    elif close < lower:
+                        trend.loc[index, 'trend'] = round(row['upper'], 2)
+                        prev_trend = 'upper'
+                    else:
+                        raise ValueError("error:001 Something went wrong")
+                elif open < lower:
                     trend.loc[index, 'trend'] = round(row['upper'], 2)
+                    prev_trend = 'upper'
                 else:
-                    trend.loc[index, 'trend'] = round(lower, 2)
-            elif prev_trend > open:
-                if close > prev_trend:
+                    raise ValueError("error:002 Something went wrong")
+            elif prev_trend == 'upper':
+                if open <= upper:
+                    if close <= upper:
+                        trend.loc[index, 'trend'] = upper
+                    elif close > upper:
+                        trend.loc[index, 'trend'] = round(row['lower'], 2)
+                        prev_trend = 'lower'
+                    else:
+                        raise ValueError("error:003 Something went wrong")
+                elif open > upper:
                     trend.loc[index, 'trend'] = round(row['lower'], 2)
+                    prev_trend = 'lower'
                 else:
-                    trend.loc[index, 'trend'] = round(upper, 2)
+                    raise ValueError("error:004 Something went wrong")
             else:
-                if close < prev_trend:
-                    trend.loc[index, 'trend'] = round(row['upper'], 2)
-                else:
-                    trend.loc[index, 'trend'] = round(row['lower'], 2)
+                raise ValueError("error:005 Unexpected value")
 
     if first_nan_index - period > 0:  # if there is enough data, because the first nan is not in too early
         # add SuperTrend to existing_data
