@@ -3,7 +3,7 @@ import os
 import asyncio
 
 from logging.handlers import RotatingFileHandler
-from api.services.client import AlorClientService
+from indexes.IMOEX.imoex_main import IMOEX_Manager
 from tickers.SBER.sber_main import SBER_Manager
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,10 @@ if __name__ == "__main__":
     logger.info("Program start")
 
     try:
-        client = AlorClientService()
+
+        imoex = IMOEX_Manager()
+        asyncio.run(imoex.run())
+
         sber = SBER_Manager()
         asyncio.run(sber.run())
 
