@@ -54,11 +54,7 @@ class SBER_Manager:
             return quotes
 
     async def run(self):
-        logger.info("Start %s manager", self.ticker)
-
         quotes = await self.__prepare()
-
-        logger.info(" %s manager prepared", self.ticker)
 
         quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
         quotes['ticker'] = quotes['ticker'].astype('category')

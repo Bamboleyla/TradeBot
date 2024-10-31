@@ -40,10 +40,6 @@ class IMOEX_Manager:
             return quotes
 
     async def run(self):
-        logger.info("Start %s manager", self.ticker)
-
         quotes = await self.__prepare()
 
         print(quotes)
-
-        logger.info(" %s manager prepared", self.ticker)

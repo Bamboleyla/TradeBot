@@ -41,12 +41,13 @@ if __name__ == "__main__":
     logger.info("Program start")
 
     try:
-
         imoex = IMOEX_Manager()
         asyncio.run(imoex.run())
+        logger.info("IMOEX Manager completed")
 
         sber = SBER_Manager()
         asyncio.run(sber.run())
+        logger.info("SBER Manager completed")
 
     except Exception as ex:
-        logger.critical("SBER Manager thread error: %s", repr(ex))
+        logger.critical("Something went wrong: %s", repr(ex))

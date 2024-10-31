@@ -89,32 +89,36 @@ class AlorClientService:
 
         responses = []  # list to store responses
 
-        async with websockets.connect(self.ws_url) as websocket:  # connect to websocket
-            message = {
-                "opcode": "BarsGetAndSubscribe",
-                "code": ticker,
-                "tf": "300",
-                "from": start_date.timestamp(),
-                "delayed": False,
-                "skipHistory": False,
-                "exchange": "MOEX",
-                "format": "Simple",
-                "frequency": 100,
-                "guid": "c328fcf1-e495-408a-a0ed-e20f95d6b813",
-                "token": self.access_token
-            }
-            await websocket.send(json.dumps(message))  # send message
-            # receive response
-            while True:
-                try:
-                    response = await websocket.recv()  # receive response
-                    response_dict = json.loads(response)  # convert response to dictionary
+        try:
+            async with websockets.connect(self.ws_url) as websocket:  # connect to websocket
+                message = {
+                    "opcode": "BarsGetAndSubscribe",
+                    "code": ticker,
+                    "tf": "300",
+                    "from": start_date.timestamp(),
+                    "delayed": False,
+                    "skipHistory": False,
+                    "exchange": "MOEX",
+                    "format": "Simple",
+                    "frequency": 100,
+                    "guid": "c328fcf1-e495-408a-a0ed-e20f95d6b813",
+                    "token": self.access_token
+                }
+                await websocket.send(json.dumps(message))  # send message
+                # receive response
+                while True:
+                    try:
+                        response = await websocket.recv()  # receive response
+                        response_dict = json.loads(response)  # convert response to dictionary
 
-                    if 'httpCode' in response_dict:  # check if response contains 'httpCode'
-                        return responses  # return responses because httpCode is last field in response
+                        if 'httpCode' in response_dict:  # check if response contains 'httpCode'
+                            return responses  # return responses because httpCode is last field in response
 
-                    responses.append(response)  # append response to list
-                except websockets.ConnectionClosed:
-                    break
+                        responses.append(response)  # append response to list
+                    except websockets.ConnectionClosed:
+                        break
+
+        except Exception as e:
+            logger.error(f'Error connecting to websocket with {ticker}: {e}')
 
         return responses
