@@ -8,7 +8,6 @@ from tickers.SBER.sber_main import SBER_Manager
 
 logger = logging.getLogger(__name__)
 
-
 def prepare_logs() -> None:
     """Prepare logging system for the bot.
 
@@ -42,7 +41,7 @@ if __name__ == "__main__":
 
     try:
         imoex = IMOEX_Manager()
-        asyncio.run(imoex.run())
+        asyncio.run(imoex.prepare())
         logger.info("IMOEX Manager completed")
 
         sber = SBER_Manager()

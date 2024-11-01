@@ -26,8 +26,6 @@ def super_trend(period: int, multiplier: int, quotes: pd.DataFrame, existing_dat
         if not pd.isna(existing_data.loc[index, column]):  # if not all values are null, use existing data
             trend.loc[index, 'trend'] = existing_data.loc[index, column]
         else:
-            # prev_trend = row['lower'] if index == 0 else trend.loc[index - 1, 'trend']
-
             upper = round(row['upper'], 2)if index == 0 else round(min(trend.loc[index - 1, 'trend'], row['upper']), 2)
             lower = round(row['lower'], 2)if index == 0 else round(max(trend.loc[index - 1, 'trend'], row['lower']), 2)
 

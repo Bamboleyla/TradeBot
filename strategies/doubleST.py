@@ -5,6 +5,8 @@ import finplot as fplt
 
 from indicators.ema import EMA
 from indicators.super_trend import super_trend
+from indicators.dmoex import dmoex
+from indexes.IMOEX.imoex_main import IMOEX_Manager
 
 __all__ = "DoubleST_Strategy"
 
@@ -22,12 +24,20 @@ class DoubleST:
             quotes[['ticker', 'date']].to_csv(self.__export_data, mode='a', header=False, index=False)
 
     def run(self, quotes: pd.DataFrame) -> None:
+        imoex = IMOEX_Manager()
+        index_quotes = imoex.get_quotes()
 
         date = pd.read_csv(self.__export_data, header=0)  # read date from file
+
+        # if data length less than quotes length then add new data
+        if len(date) < len(quotes):
+            new_data = quotes[len(date):]
+            date = pd.concat([date, new_data], ignore_index=True)
 
         date = EMA(5, quotes, date)  # calculate EMA
         date = super_trend(10, 3, quotes, date, 'ST3')  # calculate SuperTrend
         date = super_trend(20, 5, quotes, date, 'ST5')  # calculate SuperTrend
+        date = dmoex(index_quotes)  # calculate DMOEX
 
         date.to_csv(self.__export_data, index=False)  # write date to file
 

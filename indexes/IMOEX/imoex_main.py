@@ -16,7 +16,7 @@ class IMOEX_Manager:
         self.__directory = os.path.dirname(__file__)  # get current directory
         self.__data_path = os.path.join(self.__directory, 'data.csv')
 
-    async def __prepare(self) -> pd.DataFrame:
+    async def prepare(self):
         file = FileService()
 
         if not os.path.exists(self.__data_path):  # if file doesn't exist
@@ -33,13 +33,12 @@ class IMOEX_Manager:
         data = await client.ws_history_date(self.ticker, last_date)  # get data from last date to now
 
         if len(data) == 1:  # if data is empty
-            return quotes
+            pass
         else:
-            file.update_file(self.ticker, quotes, data,)  # update file
+            file.update_file(self.ticker, quotes, data,)  # update quotes file (add new data)
             quotes.to_csv(self.__data_path, index=False)  # write quotes to file
-            return quotes
 
-    async def run(self):
-        quotes = await self.__prepare()
+    def get_quotes(self) -> pd.DataFrame:
+        quotes = pd.read_csv(self.__data_path, header=0)
 
-        print(quotes)
+        return quotes
