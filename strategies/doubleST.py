@@ -43,11 +43,13 @@ class DoubleST:
                 return True
             else:
                 return False
+        else:
+            return False
 
     def long_sell(self, open: float, close: float, st3: float, st5: float) -> bool:
         if close < st3 and close < st5:
             return True
-        elif open > st3 and close < st3:
+        elif open > st3 and close < st5:
             return True
         elif open > st3 + 1.5 or close > st3 + 1.5:
             return True
@@ -56,19 +58,25 @@ class DoubleST:
 
     def show(self) -> None:
         date = pd.read_csv(self.__export_data, header=0)
-        date['BUY'] = date.apply(lambda row: self.long_buy(row['close'], row['ST3'], row['ST5']), axis=1)
-        date['SELL'] = date.apply(lambda row: self.long_sell(row['open'], row['close'], row['ST3'], row['ST5']), axis=1)
+        date['LONG_BUY'] = date.apply(lambda row: self.long_buy(row['close'], row['ST3'], row['ST5']), axis=1)
+        date['LONG_SELL'] = date.apply(lambda row: self.long_sell(row['open'], row['close'], row['ST3'], row['ST5']), axis=1)
         date['Marker_Buy', 'Marker_Sell', 'Account', 'P/L'] = pd.Series(dtype='float64')
 
-        account = 3000
-        stocks = 0
-        action = None
-        last_buy = 0
+        account = 3000  # amount of money
+        stocks = 0  # amount of stocks
+        action = None  # 'BUY' or 'SELL'
+        last_buy = 0  # last price of buy
+        commission = 0.0005  # broker commission is 0,05%
+
         for index, row in date.iterrows():
             if index == 0:
                 date.loc[index, 'Account'] = account
-            if action == 'BUY' and stocks == 0 and row['BUY']:
+            elif index == len(date) - 1 and stocks > 0:
+                action = 'SELL'
+
+            if action == 'BUY' and stocks == 0 and row['LONG_BUY']:
                 account -= row['open']*10
+                account -= row['open']*10 * commission
                 date.loc[index, 'Account'] = account
                 stocks = 10
                 date.loc[index, 'Marker_Buy'] = row['open']
@@ -76,21 +84,23 @@ class DoubleST:
                 action = None
             elif action == 'SELL' and stocks > 0:
                 account += row['open']*10
+                account -= row['open']*10 * commission
                 date.loc[index, 'Account'] = account
                 date.loc[index, 'P/L'] = (row['open'] - last_buy) * 10
                 stocks = 0
                 date.loc[index, 'Marker_Sell'] = row['open']
                 last_buy = 0
                 action = None
-            elif row['BUY']:
+
+            if row['LONG_BUY']:
                 action = 'BUY'
-            elif row['SELL'] and stocks > 0:
+            elif row['LONG_SELL'] and stocks > 0:
                 action = 'SELL'
-            else:
-                pass
 
         print(f'Final account: {account}')
         print(f'Stocks: {stocks}')
+
+        date.to_excel('show.xlsx', index=False)
 
         # list of deals
         deals = pd.DataFrame()
