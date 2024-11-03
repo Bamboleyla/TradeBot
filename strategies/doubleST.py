@@ -2,8 +2,8 @@ import logging
 import os
 import pandas as pd
 import finplot as fplt
+import talib
 
-from indicators.ema import EMA
 from indicators.super_trend import super_trend
 from indicators.dmoex import dmoex
 from indexes.IMOEX.imoex_main import IMOEX_Manager
@@ -27,16 +27,11 @@ class DoubleST:
         imoex = IMOEX_Manager()
         index_quotes = imoex.get_quotes()
 
-        data = pd.read_csv(self.__export_data, header=0)  # read date from file
+        data = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
 
-        # if data length less than quotes length then add new data
-        if len(data) < len(quotes):
-            new_data = quotes[len(data):]
-            data = pd.concat([data, new_data], ignore_index=True)
-
-        data = EMA(5, quotes, data)  # calculate EMA
-        data = super_trend(10, 3, quotes, data, 'ST3')  # calculate SuperTrend
-        data = super_trend(20, 5, quotes, data, 'ST5')  # calculate SuperTrend
+        data['EMA'] = talib.EMA(data['close'].values, timeperiod=5)
+        data = super_trend(10, 3, data)  # calculate SuperTrend
+        data = super_trend(20, 5, data)  # calculate SuperTrend
         data = dmoex(index_quotes, data)  # calculate DMOEX
 
         data.to_csv(self.__export_data, index=False)  # write date to file
@@ -59,9 +54,8 @@ class DoubleST:
         else:
             return False
 
-    def show(self, quotes: pd.DataFrame) -> None:
+    def show(self) -> None:
         date = pd.read_csv(self.__export_data, header=0)
-        date[['open', 'close', 'high', 'low']] = quotes[['open', 'close', 'high', 'low']]
         date['BUY'] = date.apply(lambda row: self.long_buy(row['close'], row['ST3'], row['ST5']), axis=1)
         date['SELL'] = date.apply(lambda row: self.long_sell(row['open'], row['close'], row['ST3'], row['ST5']), axis=1)
         date['Marker_Buy', 'Marker_Sell', 'Account', 'P/L'] = pd.Series(dtype='float64')
