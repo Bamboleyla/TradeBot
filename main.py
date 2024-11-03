@@ -8,6 +8,7 @@ from tickers.SBER.sber_main import SBER_Manager
 
 logger = logging.getLogger(__name__)
 
+
 def prepare_logs() -> None:
     """Prepare logging system for the bot.
 

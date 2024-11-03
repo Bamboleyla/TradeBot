@@ -1,10 +1,11 @@
 import pandas as pd
 
 
-def dmoex(index: pd.DataFrame) -> pd.DataFrame:
+def dmoex(index: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
 
     # convert the date column to datetime format
     index['date'] = pd.to_datetime(index['date'], format='%Y%m%d %H:%M:%S')
+    data['date'] = pd.to_datetime(data['date'], format='%Y-%m-%d %H:%M:%S')
 
     # group the data by date and get the value 'open' at the beginning of the day
     open_values = index.resample('1D', on='date').first()[['open']]
@@ -21,5 +22,16 @@ def dmoex(index: pd.DataFrame) -> pd.DataFrame:
     index['direction'] = index.apply(lambda row: 'UP' if row['close'] > open_values_map[row['day']]
                                      else 'DOWN' if row['close'] < open_values_map[row['day']] else 'NON', axis=1)
 
-    index.to_csv('dmoex.csv', index=False)
-    return index
+    # create a new column 'dmoex' in the date of the frame 'data' using merge
+    data = pd.merge(data, index[['date', 'direction']], on='date', how='left')
+
+    # rename column 'direction' in 'dmoex'
+    data = data.rename(columns={'direction': 'dmoex'})
+
+    # drop rows with '09:55:00'
+    data = data[data['date'].dt.strftime('%H:%M:%S') != '09:55:00']
+
+    # fill missing values
+    data['dmoex'] = data['dmoex'].ffill()
+
+    return data

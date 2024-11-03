@@ -27,19 +27,19 @@ class DoubleST:
         imoex = IMOEX_Manager()
         index_quotes = imoex.get_quotes()
 
-        date = pd.read_csv(self.__export_data, header=0)  # read date from file
+        data = pd.read_csv(self.__export_data, header=0)  # read date from file
 
         # if data length less than quotes length then add new data
-        if len(date) < len(quotes):
-            new_data = quotes[len(date):]
-            date = pd.concat([date, new_data], ignore_index=True)
+        if len(data) < len(quotes):
+            new_data = quotes[len(data):]
+            data = pd.concat([data, new_data], ignore_index=True)
 
-        date = EMA(5, quotes, date)  # calculate EMA
-        date = super_trend(10, 3, quotes, date, 'ST3')  # calculate SuperTrend
-        date = super_trend(20, 5, quotes, date, 'ST5')  # calculate SuperTrend
-        date = dmoex(index_quotes)  # calculate DMOEX
+        data = EMA(5, quotes, data)  # calculate EMA
+        data = super_trend(10, 3, quotes, data, 'ST3')  # calculate SuperTrend
+        data = super_trend(20, 5, quotes, data, 'ST5')  # calculate SuperTrend
+        data = dmoex(index_quotes, data)  # calculate DMOEX
 
-        date.to_csv(self.__export_data, index=False)  # write date to file
+        data.to_csv(self.__export_data, index=False)  # write date to file
 
     def long_buy(self, close: float, st3: float, st5: float) -> bool:
         if close < st3 and close > st5:
@@ -52,7 +52,6 @@ class DoubleST:
     def long_sell(self, open: float, close: float, st3: float, st5: float) -> bool:
         if close < st3 and close < st5:
             return True
-
         elif open > st3 and close < st3:
             return True
         elif open > st3 + 1.5 or close > st3 + 1.5:
