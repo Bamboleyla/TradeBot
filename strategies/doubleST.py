@@ -20,7 +20,7 @@ class DoubleST:
 
         if not os.path.exists(self.__export_data):
             with open(self.__export_data, 'w') as f:
-                f.write('ticker,date,ST3,ST5,EMA\n')
+                f.write('ticker,data,ST3,ST5,EMA\n')
             quotes[['ticker', 'date']].to_csv(self.__export_data, mode='a', header=False, index=False)
 
     def run(self, quotes: pd.DataFrame) -> None:
@@ -34,12 +34,12 @@ class DoubleST:
         data = super_trend(20, 5, data)  # calculate SuperTrend
         data = dmoex(index_quotes, data)  # calculate DMOEX
 
-        data.to_csv(self.__export_data, index=False)  # write date to file
+        data.to_csv(self.__export_data, index=False)  # write data to file
 
     def long_buy(self, close: float, st3: float, st5: float) -> bool:
         if close < st3 and close > st5:
-            deep = (st3 - st5)/3
-            if close < st5 + deep:
+
+            if close < st5 + 0.35:
                 return True
             else:
                 return False
@@ -58,11 +58,11 @@ class DoubleST:
         return True if open > st3 + 1.5 or close > st3 + 1.5 else False
 
     def show(self) -> None:
-        date = pd.read_csv(self.__export_data, header=0)
-        date['LONG_BUY'] = date.apply(lambda row: self.long_buy(row['close'], row['ST3'], row['ST5']), axis=1)
-        date['LONG_SELL'] = date.apply(lambda row: self.long_sell(row['open'], row['close'], row['ST3'], row['ST5']), axis=1)
-        date['LONG_TAKE_PROFIT'] = date.apply(lambda row: self.long_take_profit(row['open'], row['close'], row['ST3']), axis=1)
-        date['BUY_PRISE', 'SELL_PRISE', 'Account', 'P/L', 'SIGNAL'] = pd.Series(dtype='float64')
+        data = pd.read_csv(self.__export_data, header=0)
+        data['LONG_BUY'] = data.apply(lambda row: self.long_buy(row['close'], row['ST3'], row['ST5']), axis=1)
+        data['LONG_SELL'] = data.apply(lambda row: self.long_sell(row['open'], row['close'], row['ST3'], row['ST5']), axis=1)
+        data['LONG_TAKE_PROFIT'] = data.apply(lambda row: self.long_take_profit(row['open'], row['close'], row['ST3']), axis=1)
+        data['BUY_PRISE', 'SELL_PRISE', 'Account', 'P/L', 'SIGNAL'] = pd.Series(dtype='float64')
 
         account = 3000  # amount of money
         stocks = 0  # amount of stocks
@@ -70,29 +70,30 @@ class DoubleST:
         last_buy = 0  # last price of buy
         commission = 0.0005  # broker commission is 0,05%
 
-        for index, row in date.iterrows():
+        for index, row in data.iterrows():
             if index == 0:
-                date.loc[index, 'Account'] = account
-            elif index == len(date) - 1 and stocks > 0:
+                data.loc[index, 'Account'] = account
+            elif index == len(data) - 1 and stocks > 0:
                 action = 'LONG_SELL'
 
             if action == 'LONG_BUY' and stocks == 0 and row['LONG_BUY']:
-                date.loc[index, 'SIGNAL'] = action
-                account -= row['open']*10
-                account -= row['open']*10 * commission
-                date.loc[index, 'Account'] = account
+                data.loc[index, 'SIGNAL'] = action
+                prise = (data.loc[index-1, 'ST5']+0.35)
+                account -= prise*10
+                account -= prise * commission
+                data.loc[index, 'Account'] = account
                 stocks = 10
-                date.loc[index, 'BUY_PRISE'] = row['open']
-                last_buy = row['open']
+                data.loc[index, 'BUY_PRISE'] = prise
+                last_buy = prise
                 action = None
             elif action == 'LONG_SELL' or action == 'LONG_TAKE_PROFIT' and stocks > 0:
-                date.loc[index, 'SIGNAL'] = action
+                data.loc[index, 'SIGNAL'] = action
                 account += row['open']*10
                 account -= row['open']*10 * commission
-                date.loc[index, 'Account'] = account
-                date.loc[index, 'P/L'] = (row['open'] - last_buy) * 10
+                data.loc[index, 'Account'] = account
+                data.loc[index, 'P/L'] = (row['open'] - last_buy) * 10
                 stocks = 0
-                date.loc[index, 'SELL_PRISE'] = row['open']
+                data.loc[index, 'SELL_PRISE'] = row['open']
                 last_buy = 0
                 action = None
 
@@ -106,28 +107,30 @@ class DoubleST:
         print(f'Final account: {account}')
         print(f'Stocks: {stocks}')
 
-        date.to_excel('show.xlsx', index=False)
+        data.to_excel('show.xlsx', index=False)
 
         # list of deals
         deals = pd.DataFrame()
         deals[['ticker', 'date', 'SIGNAL',  'BUY_PRISE', 'SELL_PRISE', 'P/L', 'Account']
-              ] = date[['ticker', 'date', 'SIGNAL', 'BUY_PRISE', 'SELL_PRISE', 'P/L', 'Account']]
+              ] = data[['ticker', 'date', 'SIGNAL', 'BUY_PRISE', 'SELL_PRISE', 'P/L', 'Account']]
         deals = deals[deals['Account'].notnull()]
         deals.to_excel(os.path.join(self.__directory, 'doubleST/deals.xlsx'), index=False)
 
         # candlestick
-        date.set_index('date', inplace=True)
-        date.index = pd.to_datetime(date.index).tz_localize('Etc/GMT-5')
+        data.set_index('date', inplace=True)
+        data.index = pd.to_datetime(data.index).tz_localize('Etc/GMT-5')
 
-        fplt.candlestick_ochl(date[['open', 'close', 'high', 'low']])
-        fplt.plot(date['ST3'], legend='ST3', width=2)
-        fplt.plot(date['ST5'], legend='ST5', width=2)
-        fplt.plot(date['EMA'], legend='EMA')
+        fplt.candlestick_ochl(data[['open', 'close', 'high', 'low']])
+        fplt.plot(data['ST3'], legend='ST3', width=2)
+        fplt.plot(data['ST5'], legend='ST5', width=2)
+        fplt.plot(data['EMA'], legend='EMA')
 
-        fplt.plot(date['BUY_PRISE'], color='b', style='x', width=2)
-        fplt.plot(date['BUY_PRISE']-1, color='#4a5', style='^', legend='buy', width=2)
-        fplt.plot(date['SELL_PRISE'], color='b', style='x', width=2)
-        fplt.plot(date['SELL_PRISE']+1, color='r', style='v', legend='sell', width=2)
+        fplt.plot(data['BUY_PRISE'], color='b', style='x', width=2)
+        fplt.plot(data.loc[data['SIGNAL'] == 'LONG_BUY', 'BUY_PRISE']-1, color='#4a5', style='^', legend='buy', width=2)
+
+        fplt.plot(data['SELL_PRISE'], color='b', style='x', width=2)
+        fplt.plot(data.loc[data['SIGNAL'] == 'LONG_SELL', 'SELL_PRISE']+1, color='r', style='v', legend='long sell', width=2)
+        fplt.plot(data.loc[data['SIGNAL'] == 'LONG_TAKE_PROFIT', 'SELL_PRISE']+1, color='#4a5', style='p', legend='take profit', width=2)
 
         fplt.add_legend('Double SuperTrend')
         fplt.show()
