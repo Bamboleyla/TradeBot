@@ -36,32 +36,22 @@ class DoubleST:
 
         data.to_csv(self.__export_data, index=False)  # write data to file
 
-    def long_buy(self, close: float, st3: float, st5: float) -> bool:
-        if close < st3 and close > st5:
-
-            if close < st5 + 0.35:
+    def long_buy(self, previous: pd.DataFrame, current: pd.DataFrame) -> bool:
+        if previous['close'] < previous['ST3'] and previous['close'] > previous['ST5']:
+            if current['open'] > current['ST3'] and current['open'] > current['ST5']:
                 return True
-            else:
-                return False
-        else:
-            return False
+        return False
 
-    def long_sell(self, open: float, close: float, st3: float, st5: float) -> bool:
-        if close < st3 and close < st5:
+    def long_sell(self, open: float, close: float, st3: float) -> bool:
+        if close < st3 or open < st3:
             return True
-        elif open > st3 and close < st5:
-            return True
-        else:
-            return False
+        return False
 
-    def long_take_profit(self, open: float, close: float, st3: float) -> bool:
-        return True if open > st3 + 1.5 or close > st3 + 1.5 else False
+    def long_take_profit(self, long_prise: float, open: float, close: float, high: float) -> bool:
+        return True if open > long_prise + 1.5 or close > long_prise + 1.5 or high > long_prise + 1.5 else False
 
     def show(self) -> None:
         data = pd.read_csv(self.__export_data, header=0)
-        data['LONG_BUY'] = data.apply(lambda row: self.long_buy(row['close'], row['ST3'], row['ST5']), axis=1)
-        data['LONG_SELL'] = data.apply(lambda row: self.long_sell(row['open'], row['close'], row['ST3'], row['ST5']), axis=1)
-        data['LONG_TAKE_PROFIT'] = data.apply(lambda row: self.long_take_profit(row['open'], row['close'], row['ST3']), axis=1)
         data['BUY_PRISE', 'SELL_PRISE', 'Account', 'P/L', 'SIGNAL'] = pd.Series(dtype='float64')
 
         account = 3000  # amount of money
@@ -73,12 +63,15 @@ class DoubleST:
         for index, row in data.iterrows():
             if index == 0:
                 data.loc[index, 'Account'] = account
+                continue
+            elif pd.isnull(row['ST3']) or pd.isnull(row['ST5']):
+                continue
             elif index == len(data) - 1 and stocks > 0:
                 action = 'LONG_SELL'
 
-            if action == 'LONG_BUY' and stocks == 0 and row['LONG_BUY']:
+            if action == 'LONG_BUY' and stocks == 0:
                 data.loc[index, 'SIGNAL'] = action
-                prise = (data.loc[index-1, 'ST5']+0.35)
+                prise = (data.loc[index - 2, 'ST3'])
                 account -= prise*10
                 account -= prise * commission
                 data.loc[index, 'Account'] = account
@@ -97,11 +90,11 @@ class DoubleST:
                 last_buy = 0
                 action = None
 
-            if row['LONG_BUY']:
+            if stocks == 0 and self.long_buy(data.loc[index - 1], row):
                 action = 'LONG_BUY'
-            elif row['LONG_SELL'] and stocks > 0:
+            elif stocks > 0 and self.long_sell(row['open'], row['close'], row['ST3']):
                 action = 'LONG_SELL'
-            elif row['LONG_TAKE_PROFIT'] and stocks > 0:
+            elif stocks > 0 and self.long_take_profit(last_buy, row['open'], row['close'], row['high']):
                 action = 'LONG_TAKE_PROFIT'
 
         print(f'Final account: {account}')
