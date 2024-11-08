@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class DoubleST:
-    def __init__(self, directory: str, quotes: pd.DataFrame):
+    def __init__(self, directory: str, quotes: pd.DataFrame,var_profit: float):
         self.__directory = directory
         self.__export_data = os.path.join(directory, 'doubleST\\data.csv')
 
@@ -22,6 +22,8 @@ class DoubleST:
             with open(self.__export_data, 'w') as f:
                 f.write('ticker,data,ST3,ST5,EMA\n')
             quotes[['ticker', 'date']].to_csv(self.__export_data, mode='a', header=False, index=False)
+
+        self.var_profit = var_profit
 
     def run(self, quotes: pd.DataFrame) -> None:
         imoex = IMOEX_Manager()
@@ -47,8 +49,8 @@ class DoubleST:
             return True
         return False
 
-    def long_take_profit(self, long_prise: float, open: float, close: float, high: float) -> bool:
-        return True if open > long_prise + 1.5 or close > long_prise + 1.5 or high > long_prise + 1.5 else False
+    def long_take_profit(self, long_prise: float, open: float, close: float, high: float, var_profit: float) -> bool:
+        return True if open > long_prise + var_profit or close > long_prise + var_profit or high > long_prise + var_profit else False
     
     def short_buy(self, open: float, close: float, hight:float, st3: float,st5: float) -> bool:
         if st3 < st5:
@@ -62,11 +64,14 @@ class DoubleST:
     def short_take_profit(self, short_prise: float, open: float, close: float, low: float) -> bool:
         return True if open < short_prise - 20 or close < short_prise - 20 or low < short_prise - 20 else False
 
-    def show(self) -> None:
+    def calculate(self,var_profit: float=None) -> None:
+        if var_profit is None:
+            var_profit = self.var_profit
+
         data = pd.read_csv(self.__export_data, header=0)
         data['BUY_PRISE', 'SELL_PRISE', 'Account', 'P/L', 'SIGNAL'] = pd.Series(dtype='float64')
 
-        account = 3000  # amount of money
+        account = 0  # amount of money
         stocks = 0  # amount of stocks
         action = None  # 'BUY' or 'SELL'
         last_buy = 0  # last price of buy
@@ -135,7 +140,7 @@ class DoubleST:
             elif stocks > 0:
                 if self.long_sell(row['open'], row['close'], row['ST3']):
                     action = 'LONG_SELL'
-                elif  self.long_take_profit(last_buy, row['open'], row['close'], row['high']):
+                elif  self.long_take_profit(last_buy, row['open'], row['close'], row['high'], var_profit):
                     action = 'LONG_TAKE_PROFIT'
 
             
@@ -143,15 +148,20 @@ class DoubleST:
                 if self.short_sell(row['open'], row['close'], row['ST3']):
                     action = 'SHORT_SELL'
                 elif  self.short_take_profit(last_buy, row['open'], row['close'], row['low']):
-                    action = 'SHORT_TAKE_PROFIT'
+                    action = 'SHORT_TAKE_PROFIT'          
             
-            
-
         print(f'Final account: {account}')
-        print(f'Stocks: {stocks}')
 
-        data.to_excel('show.xlsx', index=False)
+        long_buy_count = data['SIGNAL'].value_counts().get('LONG_BUY',0)
+        long_sell_count = data['SIGNAL'].value_counts().get('LONG_SELL',0)
+        long_take_profit_count = data['SIGNAL'].value_counts().get('LONG_TAKE_PROFIT',0)
+        short_buy_count = data['SIGNAL'].value_counts().get('SHORT_BUY',0)
+        short_sell_count = data['SIGNAL'].value_counts().get('SHORT_SELL',0)
+        short_take_profit_count = data['SIGNAL'].value_counts().get('SHORT_TAKE_PROFIT',0)
 
+        return {'data': data, 'account': account, 'long_buy_count': long_buy_count, 'long_sell_count': long_sell_count, 'long_take_profit_count': long_take_profit_count, 'short_buy_count': short_buy_count, 'short_sell_count': short_sell_count, 'short_take_profit_count': short_take_profit_count}
+    
+    def show(self,data: pd.DataFrame) -> None:
         # list of deals
         deals = pd.DataFrame()
         deals[['ticker', 'date', 'SIGNAL',  'BUY_PRISE', 'SELL_PRISE', 'P/L', 'Account']
@@ -198,3 +208,16 @@ class DoubleST:
 
         fplt.add_legend('Double SuperTrend')
         fplt.show()
+
+    def optimize(self, var_profit:dict) -> None:
+        results = pd.DataFrame(columns=['var_profit', 'account', 'long_buy_count', 'long_sell_count', 'long_take_profit_count','short_buy_count','short_sell_count','short_take_profit_count'])
+
+        start = var_profit['start']
+
+        while start <=var_profit['end']:
+            result = self.calculate(start)
+            results.loc[len(results)] = {'var_profit': round(start, 3), 'account': round(result['account'], 3),'long_buy_count': result['long_buy_count'], 'long_sell_count': result['long_sell_count'], 'long_take_profit_count': result['long_take_profit_count'], 'short_buy_count': result['short_buy_count'], 'short_sell_count': result['short_sell_count'], 'short_take_profit_count': result['short_take_profit_count']}
+
+            start += var_profit['step']
+
+        results.to_csv(os.path.join(self.__directory, 'doubleST/optimize.csv'), index=False)
