@@ -31,6 +31,9 @@ def dmoex(index: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
     # drop rows with '09:55:00'
     data = data[data['date'].dt.strftime('%H:%M:%S') != '09:55:00']
 
+    # reset index to ensure the rows are in the correct order and drop the old index column
+    data = data.reset_index(drop=True)
+
     # fill missing values
     data['dmoex'] = data['dmoex'].ffill()
 

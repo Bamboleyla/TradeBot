@@ -14,33 +14,29 @@ logger = logging.getLogger(__name__)
 
 
 class DoubleST:
-    def __init__(self, directory: str, quotes: pd.DataFrame, var_profit: float):
+    def __init__(self, directory: str, var_profit: float):
         self.__directory = directory
         self.__export_data = os.path.join(directory, 'doubleST\\data.csv')
+        self.__var_profit = var_profit
 
-        if not os.path.exists(self.__export_data):
-            with open(self.__export_data, 'w') as f:
-                f.write('ticker,data,ST3,ST5,EMA\n')
-            quotes[['ticker', 'date']].to_csv(self.__export_data, mode='a', header=False, index=False)
-
-        self.var_profit = var_profit
-
-    def run(self, quotes: pd.DataFrame) -> None:
+    def run(self, quotes: pd.DataFrame) -> pd.DataFrame:
         imoex = IMOEX_Manager()
         index_quotes = imoex.get_quotes()
 
         data = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
 
-        data['EMA'] = talib.EMA(data['close'].values, timeperiod=200)
-        data = super_trend(10, 3, data)  # calculate SuperTrend
-        data = super_trend(20, 5, data)  # calculate SuperTrend
+        data['EMA'] = talib.EMA(data['close'].values, timeperiod=50)
+
+        config = pd.DataFrame({'period': [10, 20], 'multiplier': [3, 5]})
+        data = super_trend(config, data)  # calculate SuperTrends
         data = dmoex(index_quotes, data)  # calculate DMOEX
 
         data.to_csv(self.__export_data, index=False)  # write data to file
+        return data
 
     def long_buy(self, previous: pd.DataFrame, current: pd.DataFrame) -> bool:
-        if previous['close'] <= previous['ST3'] and previous['close'] > previous['ST5']:
-            if current['open'] > current['ST3'] and current['open'] > current['ST5']:
+        if previous['close'] <= previous['ST_FAST'] and previous['close'] > previous['ST_SLOW']:
+            if current['open'] > current['ST_FAST'] and current['open'] > current['ST_SLOW']:
                 return True
         return False
 
@@ -61,12 +57,9 @@ class DoubleST:
     def short_take_profit(self, short_prise: float, open: float, close: float, low: float) -> bool:
         return True if open < short_prise - 20 or close < short_prise - 20 or low < short_prise - 20 else False
 
-    def calculate(self, var_profit: float = None) -> None:
+    def calculate(self, data: pd.DataFrame, var_profit: float = None) -> None:
         if var_profit is None:
-            var_profit = self.var_profit
-
-        data = pd.read_csv(self.__export_data, header=0)
-        data['BUY_PRISE', 'SELL_PRISE', 'Account', 'P/L', 'SIGNAL'] = pd.Series(dtype='float64')
+            var_profit = self.__var_profit
 
         account = 0  # amount of money
         stocks = 0  # amount of stocks
@@ -79,7 +72,7 @@ class DoubleST:
             if index == 0:
                 data.loc[index, 'Account'] = account
                 continue
-            elif pd.isnull(row['ST3']) or pd.isnull(row['ST5']):
+            elif pd.isnull(row['ST_FAST']) or pd.isnull(row['ST_SLOW']):
                 continue
             elif index == len(data) - 1 and stocks > 0:
                 action = 'LONG_SELL'
@@ -103,7 +96,7 @@ class DoubleST:
             # actions
             if action == 'LONG_BUY' and stocks == 0:
                 data.loc[index, 'SIGNAL'] = action
-                prise = (data.loc[index - 2, 'ST3'])
+                prise = (data.loc[index - 2, 'ST_FAST'])
                 account -= prise*10
                 account -= prise * commission
                 data.loc[index, 'Account'] = account
@@ -122,7 +115,7 @@ class DoubleST:
                 last_buy = 0
                 action = None
             elif action == 'SHORT_BUY' and stocks == 0:
-                if row['open'] < row['ST3']:
+                if row['open'] < row['ST_FAST']:
                     data.loc[index, 'SIGNAL'] = action
                     account += row['open']*10
                     account -= row['open']*10 * commission
@@ -148,13 +141,13 @@ class DoubleST:
             if stocks == 0:
                 if self.long_buy(data.loc[index - 1], row):
                     action = 'LONG_BUY'
-                elif self.short_buy(row['open'], row['close'], row['high'], row['ST3'], row['ST5']):
+                elif self.short_buy(row['open'], row['close'], row['high'], row['ST_FAST'], row['ST_SLOW']):
                     action = 'SHORT_BUY'
             elif stocks > 0:
-                if self.long_sell(row['open'], row['close'], row['ST3']):
+                if self.long_sell(row['open'], row['close'], row['ST_FAST']):
                     action = 'LONG_SELL'
             elif stocks < 0:
-                if self.short_sell(row['open'], row['close'], row['ST3']):
+                if self.short_sell(row['open'], row['close'], row['ST_FAST']):
                     action = 'SHORT_SELL'
                 elif self.short_take_profit(last_buy, row['open'], row['close'], row['low']):
                     action = 'SHORT_TAKE_PROFIT'
@@ -186,8 +179,8 @@ class DoubleST:
         data.index = pd.to_datetime(data.index).tz_localize('Etc/GMT-5')
 
         fplt.candlestick_ochl(data[['open', 'close', 'high', 'low']])
-        fplt.plot(data['ST3'], legend='ST3', width=2)
-        fplt.plot(data['ST5'], legend='ST5', width=2)
+        fplt.plot(data['ST_FAST'], legend='ST_FAST', width=2)
+        fplt.plot(data['ST_SLOW'], legend='ST_SLOW', width=2)
         fplt.plot(data['EMA'], legend='EMA')
 
         fplt.plot(data['BUY_PRISE'], color='b', style='x', width=2)
@@ -221,14 +214,14 @@ class DoubleST:
         fplt.add_legend('Double SuperTrend')
         fplt.show()
 
-    def optimize(self, var_profit: dict) -> None:
+    def optimize(self, data: pd.DataFrame, var_profit: dict) -> None:
         results = pd.DataFrame(columns=['var_profit', 'account', 'long_buy_count', 'long_sell_count',
                                'long_take_profit_count', 'short_buy_count', 'short_sell_count', 'short_take_profit_count'])
 
         start = var_profit['start']
 
         while start <= var_profit['end']:
-            result = self.calculate(start)
+            result = self.calculate(data, start)
             results.loc[len(results)] = {'var_profit': round(start, 3), 'account': round(result['account'], 3), 'long_buy_count': result['long_buy_count'],
                                          'long_sell_count': result['long_sell_count'], 'long_take_profit_count': result['long_take_profit_count'],
                                          'short_buy_count': result['short_buy_count'], 'short_sell_count': result['short_sell_count'],

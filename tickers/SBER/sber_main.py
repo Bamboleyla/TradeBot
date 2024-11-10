@@ -59,10 +59,11 @@ class SBER_Manager:
         quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
         quotes['ticker'] = quotes['ticker'].astype('category')
 
-        double_st = DoubleST(self.__directory, quotes, 1.6)
+        double_st = DoubleST(self.__directory, 1.6)
 
-        double_st.run(quotes)
+        data = double_st.run(quotes)
 
-        result = double_st.calculate()['data']
-        double_st.show(result)
-        # double_st.optimize({'start': 1.0, 'step': 0.1, 'end': 5.0})
+        data = double_st.calculate(data)['data']
+        double_st.show(data)
+
+        # double_st.optimize(data, {'start': 1.0, 'step': 0.1, 'end': 5.0})
