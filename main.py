@@ -5,7 +5,7 @@ import asyncio
 from logging.handlers import RotatingFileHandler
 from indexes.IMOEX.imoex_main import IMOEX_Manager
 from tickers.SBER.sber_main import SBER_Manager
-from api.services.client import AlorClientService
+from tickers.ALRS.main import ALRS_Manager
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +50,9 @@ if __name__ == "__main__":
         # asyncio.run(sber.run())
         # logger.info("SBER Manager completed")
 
-        client = AlorClientService()
-        asyncio.run(client.get_status())
+        alrs = ALRS_Manager()
+        asyncio.run(alrs.run())
+        logger.info("SBER Manager completed")
 
     except Exception as ex:
         logger.critical("Something went wrong: %s", repr(ex))

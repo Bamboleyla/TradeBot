@@ -36,7 +36,6 @@ class AlorClientService:
         token = AlorTokenService()  # Load token service
 
         self.access_token = token.get_access_token()['access_token']
-        self.guid = uuid.uuid4().hex
         self.ws_url = config.websocket_url
         self.is_work = config.is_work
 
@@ -58,7 +57,7 @@ class AlorClientService:
                         "exchange": "MOEX",
                         "format": "Simple",
                         "frequency": 0,
-                        "guid": self.guid,
+                        "guid": uuid.uuid4().hex,
                         "token": self.access_token
                     }
                     await websocket.send(json.dumps(message))
@@ -102,7 +101,7 @@ class AlorClientService:
                     "exchange": "MOEX",
                     "format": "Simple",
                     "frequency": 100,
-                    "guid": "c328fcf1-e495-408a-a0ed-e20f95d6b813",
+                    "guid": uuid.uuid4().hex,
                     "token": self.access_token
                 }
                 await websocket.send(json.dumps(message))  # send message
@@ -125,9 +124,7 @@ class AlorClientService:
         return responses
 
     async def get_status(self) -> str:
-        responses = []  # list to store responses
-        try:
-
+        try:            
             async with websockets.connect(self.ws_url) as websocket:  # connect to websocket
                 message = {
                     "opcode": "SummariesGetAndSubscribeV2",
@@ -136,7 +133,7 @@ class AlorClientService:
                     "exchange": "MOEX",
                     "format": "Simple",
                     "frequency": 100,
-                    "guid": "c328fcf1-e495-408a-a0ed-e20f95d6b813",
+                    "guid": uuid.uuid4().hex,
                     "token": self.access_token
                 }
                 await websocket.send(json.dumps(message))  # send message
@@ -144,16 +141,13 @@ class AlorClientService:
                 while True:
                     try:
                         response = await websocket.recv()  # receive response
-                        response_dict = json.loads(response)  # convert response to dictionary
-
-                        if 'httpCode' in response_dict:  # check if response contains 'httpCode'
-                            return responses  # return responses because httpCode is last field in response
-
-                        responses.append(response)  # append response to list
+                        data = json.loads(response)['data']  # convert response to dictionary
+                        print(data)  # print data
+                        return data
                     except websockets.ConnectionClosed:
                         break
 
         except Exception as e:
-            logger.error(f'Error connecting to websocket with {ticker}: {e}')
+                logger.error('Error connecting to websocket: %s', e)
 
-        return responses
+        

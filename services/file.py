@@ -47,6 +47,7 @@ class FileService:
         """
         if df.empty:
             now = datetime.now(timezone.utc)  # Get current date and time
+            now = now - timedelta(days=31) # Subtract 1 month ago
             return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone(timedelta(hours=3)))  # Get first day of current month
         else:
             # Return value from the last row of column 'date' in datetime format
