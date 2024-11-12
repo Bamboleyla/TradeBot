@@ -1,11 +1,12 @@
 import logging
 import os
 import asyncio
+import pandas as pd
 
 from logging.handlers import RotatingFileHandler
-from indexes.IMOEX.imoex_main import IMOEX_Manager
-from tickers.SBER.sber_main import SBER_Manager
-from tickers.ALRS.main import ALRS_Manager
+from services.downloader import Downloader
+from services.manager import Manager
+from strategies.doubleST import DoubleST
 
 logger = logging.getLogger(__name__)
 
@@ -35,24 +36,63 @@ def prepare_logs() -> None:
         encoding="utf-8",
     )
 
+def prepare_tickers() -> None:
+    for ticker in tickers:
+        if not os.path.exists('tickers/'+ticker+"/"):
+            # Create ticker directory
+            os.makedirs('tickers/'+ticker+"/")
+        if not os.path.exists('tickers/'+ticker+"/config.py"):
+            # Create config file
+            open('tickers/'+ticker+"/config.py", 'w').close()
 
 if __name__ == "__main__":
-    # Prepare logging system
-    prepare_logs()
+    
+    prepare_logs() # Prepare logging system
     logger.info("Program start")
 
+    tickers = ['ALRS', 'SBER']  # Add your tickers here
+    prepare_tickers() # Prepare directories for tickers (if they don't exist)
+
     try:
-        # imoex = IMOEX_Manager()
-        # asyncio.run(imoex.prepare())
-        # logger.info("IMOEX Manager completed")
+        message = '''Choose mode:
+    1 - download historical data;
+    2 - show;
+    3 - optimize;
+    0 - exit;
+                         
+Please, enter mode:'''
 
-        # sber = SBER_Manager()
-        # asyncio.run(sber.run())
-        # logger.info("SBER Manager completed")
+        # Choose mode
+        mode = int(input(message ))
+        if mode == 1:
+            loader = Downloader(tickers)
+            asyncio.run(loader.run())
 
-        alrs = ALRS_Manager()
-        asyncio.run(alrs.run())
-        logger.info("SBER Manager completed")
+        elif mode == 2:
+            manager = Manager('SBER')
+            quotes = manager.get_quotes()
+
+            quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
+
+            double_st = DoubleST(manager.get_directory(), 1.6)
+
+            data = double_st.run(quotes)
+
+            data = double_st.calculate(data)['data']
+            double_st.show(data)
+
+        elif mode ==3:
+            manager = Manager('SBER')
+            
+            data =pd.read_csv(manager.get_doubleST_path(), header=0)
+
+            double_st = DoubleST(manager.get_directory(), 1.6)
+            double_st.optimize(data, {'start': 1.0, 'step': 0.1, 'end': 5.0})
+
+        elif mode == 0:
+            print("Program exit")
+        else:
+            print("Invalid mode. Stopping the program. Exiting...")
 
     except Exception as ex:
         logger.critical("Something went wrong: %s", repr(ex))

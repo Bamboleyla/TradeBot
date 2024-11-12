@@ -16,12 +16,10 @@ logger = logging.getLogger(__name__)
 class DoubleST:
     def __init__(self, directory: str, var_profit: float):
         self.__directory = directory
-        self.__export_data = os.path.join(directory, 'doubleST\\data.csv')
+        self.__export_data = os.path.join(directory, 'dobleST.csv')
         self.__var_profit = var_profit
 
     def run(self, quotes: pd.DataFrame) -> pd.DataFrame:
-        imoex = IMOEX_Manager()
-        index_quotes = imoex.get_quotes()
 
         data = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
 
@@ -29,7 +27,6 @@ class DoubleST:
 
         config = pd.DataFrame({'period': [10, 20], 'multiplier': [3, 5]})
         data = super_trend(config, data)  # calculate SuperTrends
-        data = dmoex(index_quotes, data)  # calculate DMOEX
 
         data.to_csv(self.__export_data, index=False)  # write data to file
         return data
@@ -172,7 +169,7 @@ class DoubleST:
         deals[['ticker', 'date', 'SIGNAL',  'BUY_PRISE', 'SELL_PRISE', 'P/L', 'Account']
               ] = data[['ticker', 'date', 'SIGNAL', 'BUY_PRISE', 'SELL_PRISE', 'P/L', 'Account']]
         deals = deals[deals['Account'].notnull()]
-        deals.to_excel(os.path.join(self.__directory, 'doubleST/deals.xlsx'), index=False)
+        deals.to_excel(os.path.join(self.__directory, 'deals.xlsx'), index=False)
 
         # candlestick
         data.set_index('date', inplace=True)
@@ -229,4 +226,4 @@ class DoubleST:
 
             start += var_profit['step']
 
-        results.to_csv(os.path.join(self.__directory, 'doubleST/optimize.csv'), index=False)
+        results.to_excel(os.path.join(self.__directory, 'optimize.xlsx'), index=False)

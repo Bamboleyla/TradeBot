@@ -11,8 +11,8 @@ __pycache__/
 # venv
 /.venv
 
-# DateSets
-data.csv
+# indexes
+/indexes
 
-# DataStrategies
-doubleST/
+# tickers
+/tickers
