@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import finplot as fplt
 import talib
+import json
 
 from indicators.super_trend import super_trend
 from indicators.dmoex import dmoex
@@ -14,10 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 class DoubleST:
-    def __init__(self, directory: str, var_profit: float):
+    def __init__(self, directory: str):
         self.__directory = directory
-        self.__export_data = os.path.join(directory, 'dobleST.csv')
-        self.__var_profit = var_profit
+
+        with open(os.path.join(self.__directory, 'config.json'), 'r') as f:
+            config = json.load(f)
+            self.__var_profit = config['var_profit']
+            self.__period = config['period']
+            self.__multiplier = config['multiplier']
 
     def run(self, quotes: pd.DataFrame) -> pd.DataFrame:
 
@@ -25,10 +30,10 @@ class DoubleST:
 
         data['EMA'] = talib.EMA(data['close'].values, timeperiod=50)
 
-        config = pd.DataFrame({'period': [10, 20], 'multiplier': [3, 5]})
+        config = pd.DataFrame({'period': self.__period, 'multiplier': self.__multiplier})
         data = super_trend(config, data)  # calculate SuperTrends
 
-        data.to_csv(self.__export_data, index=False)  # write data to file
+        data.to_csv(os.path.join(self.__directory, 'dobleST.csv'), index=False)  # write data to file
         return data
 
     def long_buy(self, previous: pd.DataFrame, current: pd.DataFrame) -> bool:

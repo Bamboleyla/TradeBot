@@ -2,6 +2,7 @@ import logging
 import os
 import asyncio
 import pandas as pd
+import json
 
 from logging.handlers import RotatingFileHandler
 from services.downloader import Downloader
@@ -36,22 +37,32 @@ def prepare_logs() -> None:
         encoding="utf-8",
     )
 
+
 def prepare_tickers() -> None:
     for ticker in tickers:
+        # Check ticker directory
         if not os.path.exists('tickers/'+ticker+"/"):
             # Create ticker directory
             os.makedirs('tickers/'+ticker+"/")
-        if not os.path.exists('tickers/'+ticker+"/config.py"):
+
+        # Check config file
+        if not os.path.exists('tickers/'+ticker+"/config.json"):
+            # Create default config
+            default = {
+                'var_profit': 1.5, 'period': [10, 20], 'multiplier': [3, 5]
+            }
             # Create config file
-            open('tickers/'+ticker+"/config.py", 'w').close()
+            with open('tickers/'+ticker+"/config.json", 'w') as f:
+                json.dump(default, f)
+
 
 if __name__ == "__main__":
-    
-    prepare_logs() # Prepare logging system
+
+    prepare_logs()  # Prepare logging system
     logger.info("Program start")
 
-    tickers = ['ALRS', 'SBER']  # Add your tickers here
-    prepare_tickers() # Prepare directories for tickers (if they don't exist)
+    tickers = ['ALRS', 'BANE', 'BSPB', 'CBOM', 'CHMF', 'FLOT', 'GCHE', 'HEAD', 'LENT', 'MAGN', 'MOEX', 'ROSN', 'SBER', 'YDEX']  # Add your tickers here
+    prepare_tickers()  # Prepare directories for tickers (if they don't exist)
 
     try:
         message = '''Choose mode:
@@ -63,7 +74,7 @@ if __name__ == "__main__":
 Please, enter mode:'''
 
         # Choose mode
-        mode = int(input(message ))
+        mode = int(input(message))
         if mode == 1:
             loader = Downloader(tickers)
             asyncio.run(loader.run())
@@ -74,19 +85,19 @@ Please, enter mode:'''
 
             quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
 
-            double_st = DoubleST(manager.get_directory(), 1.6)
+            double_st = DoubleST(manager.get_directory())
 
             data = double_st.run(quotes)
 
             data = double_st.calculate(data)['data']
             double_st.show(data)
 
-        elif mode ==3:
+        elif mode == 3:
             manager = Manager('SBER')
-            
-            data =pd.read_csv(manager.get_doubleST_path(), header=0)
 
-            double_st = DoubleST(manager.get_directory(), 1.6)
+            data = pd.read_csv(manager.get_doubleST_path(), header=0)
+
+            double_st = DoubleST(manager.get_directory())
             double_st.optimize(data, {'start': 1.0, 'step': 0.1, 'end': 5.0})
 
         elif mode == 0:
