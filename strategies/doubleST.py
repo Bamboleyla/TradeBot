@@ -6,8 +6,6 @@ import talib
 import json
 
 from indicators.super_trend import super_trend
-from indicators.dmoex import dmoex
-from indexes.IMOEX.imoex_main import IMOEX_Manager
 
 __all__ = "DoubleST_Strategy"
 
@@ -47,14 +45,12 @@ class DoubleST:
             return True
         return False
 
-    def short_buy(self, open: float, close: float, hight: float, st3: float, st5: float) -> bool:
-        if st3 < st5:
-            if open < st3 and close < st3 and hight > st3:
-                return True
+    def short_buy(self, previous: pd.DataFrame, current: pd.DataFrame) -> bool:
+        if previous['ST_FAST'] > previous['ST_SLOW']:
+            if previous['open'] > previous['ST_FAST'] and previous['close'] >= previous['ST_FAST']:
+                if current['open'] < current['ST_FAST'] or current['close'] < current['ST_FAST']:
+                    return True
         return False
-
-    def short_sell(self, open: float, close: float, st3: float) -> bool:
-        return True if open > st3 or close > st3 else False
 
     def short_take_profit(self, short_prise: float, open: float, close: float, low: float) -> bool:
         return True if open < short_prise - 20 or close < short_prise - 20 or low < short_prise - 20 else False
@@ -94,6 +90,18 @@ class DoubleST:
                     data.loc[index, 'SELL_PRISE'] = take_profit
                     last_buy = 0
                     action = None
+            elif stocks < 0:  # short sell
+                if row['open'] > row['ST_FAST'] or row['close'] > row['ST_FAST']or row['high']> row['ST_FAST']:
+                    data.loc[index, 'SIGNAL'] = 'SHORT_SELL'
+                    close_price = row['ST_FAST'] if row['open']<row['ST_FAST']else data.loc[index-1,'ST_FAST']
+                    account -= close_price*10
+                    account -= close_price*10 * commission
+                    data.loc[index, 'Account'] = account
+                    data.loc[index, 'P/L'] = (last_buy-close_price) * 10
+                    stocks = 0
+                    data.loc[index, 'SELL_PRISE'] = close_price
+                    last_buy = 0
+                    action = None
 
             # actions
             if action == 'LONG_BUY' and stocks == 0:
@@ -116,18 +124,15 @@ class DoubleST:
                 data.loc[index, 'SELL_PRISE'] = row['open']
                 last_buy = 0
                 action = None
-            elif action == 'SHORT_BUY' and stocks == 0:
-                if row['open'] < row['ST_FAST']:
-                    data.loc[index, 'SIGNAL'] = action
-                    account += row['open']*10
-                    account -= row['open']*10 * commission
-                    data.loc[index, 'Account'] = account
-                    stocks = -10
-                    data.loc[index, 'BUY_PRISE'] = row['open']
-                    last_buy = row['open']
-                    action = None
-                else:
-                    action = None
+            elif action == 'SHORT_BUY' and stocks == 0:                
+                data.loc[index, 'SIGNAL'] = action
+                account += row['open']*10
+                account -= row['open']*10 * commission
+                data.loc[index, 'Account'] = account
+                stocks = -10
+                data.loc[index, 'BUY_PRISE'] = row['open']
+                last_buy = row['open']
+                action = None                
             elif action == 'SHORT_SELL' or action == 'SHORT_TAKE_PROFIT' and stocks < 0:
                 data.loc[index, 'SIGNAL'] = action
                 account -= row['open']*10
@@ -143,16 +148,11 @@ class DoubleST:
             if stocks == 0:
                 if self.long_buy(data.loc[index - 1], row):
                     action = 'LONG_BUY'
-                elif self.short_buy(row['open'], row['close'], row['high'], row['ST_FAST'], row['ST_SLOW']):
+                elif self.short_buy(data.loc[index - 1], row):
                     action = 'SHORT_BUY'
             elif stocks > 0:
                 if self.long_sell(row['open'], row['close'], row['ST_FAST']):
                     action = 'LONG_SELL'
-            elif stocks < 0:
-                if self.short_sell(row['open'], row['close'], row['ST_FAST']):
-                    action = 'SHORT_SELL'
-                elif self.short_take_profit(last_buy, row['open'], row['close'], row['low']):
-                    action = 'SHORT_TAKE_PROFIT'
 
         print(f'var_profit: {round(var_profit, 2)}, Final account: {round(account, 3)}')
 
@@ -195,7 +195,7 @@ class DoubleST:
 
         long_sell = data.loc[data['SIGNAL'] == 'LONG_SELL', 'SELL_PRISE']
         if not long_sell.empty:
-            fplt.plot(long_sell+1, color='r', style='v', legend='sell', width=2)
+            fplt.plot(long_sell+1, color='#4a6', style='o', legend='sell', width=2)
 
         long_take_profit = data.loc[data['SIGNAL'] == 'LONG_TAKE_PROFIT', 'SELL_PRISE']
         if not long_take_profit.empty:
@@ -203,7 +203,7 @@ class DoubleST:
 
         short_buy = data.loc[data['SIGNAL'] == 'SHORT_BUY', 'BUY_PRISE']
         if not short_buy.empty:
-            fplt.plot(short_buy-1, color='#4a6', style='o', legend='short buy', width=2)
+            fplt.plot(short_buy-1, color='r', style='^', legend='short buy', width=2)
 
         short_sell = data.loc[data['SIGNAL'] == 'SHORT_SELL', 'SELL_PRISE']
         if not short_sell.empty:

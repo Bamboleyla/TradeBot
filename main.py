@@ -3,6 +3,7 @@ import os
 import asyncio
 import pandas as pd
 import json
+import time
 
 from logging.handlers import RotatingFileHandler
 from services.downloader import Downloader
@@ -80,16 +81,27 @@ Please, enter mode:'''
             asyncio.run(loader.run())
 
         elif mode == 2:
+            print('Start reading quotes...')
+            start_time = time.time()
             manager = Manager('SBER')
             quotes = manager.get_quotes()
 
             quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
-
+            end_time = time.time()
+            print('Quotes completed...'+str(round(end_time-start_time,3))+'s')
+            print('Start prepare data...')
+            start_time = time.time()
             double_st = DoubleST(manager.get_directory())
 
             data = double_st.run(quotes)
-
+            end_time = time.time()
+            print('Data completed...'+str(round(end_time-start_time,3))+'s')
+            print('Start calculate...')
+            start_time = time.time()
             data = double_st.calculate(data)['data']
+            end_time = time.time()
+            print('Calculate completed...'+str(round(end_time-start_time,3))+'s')
+            print('Start show...')
             double_st.show(data)
 
         elif mode == 3:
