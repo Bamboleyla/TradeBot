@@ -23,6 +23,12 @@ class DoubleST:
             self.__multiplier = config['multiplier']
 
     def run(self, quotes: pd.DataFrame) -> pd.DataFrame:
+        if os.path.exists(os.path.join(self.__directory, 'dobleST.csv')):  # if file with data exist
+            data = pd.read_csv(os.path.join(self.__directory, 'dobleST.csv'), header=0)
+
+            # If the data and quotes have the same last dates, then there is no point in recalculating
+            if(data['date'].iloc[-1]==str(quotes['date'].iloc[-1])):
+                return data
 
         data = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
 
