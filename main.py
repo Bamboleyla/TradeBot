@@ -8,7 +8,7 @@ import time
 from logging.handlers import RotatingFileHandler
 from services.downloader import Downloader
 from services.manager import Manager
-from strategies.doubleST import DoubleST
+from strategies.doubleST.main import DoubleST
 
 logger = logging.getLogger(__name__)
 
