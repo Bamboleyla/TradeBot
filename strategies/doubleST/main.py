@@ -6,6 +6,9 @@ import talib
 import json
 
 from indicators.super_trend import super_trend
+from strategies.doubleST.signals.long_open import long_buy
+from strategies.doubleST.signals.long_close import long_sell
+from strategies.doubleST.signals.short_open import short_buy
 
 __all__ = "DoubleST_Strategy"
 
@@ -27,7 +30,7 @@ class DoubleST:
             data = pd.read_csv(os.path.join(self.__directory, 'dobleST.csv'), header=0)
 
             # If the data and quotes have the same last dates, then there is no point in recalculating
-            if(data['date'].iloc[-1]==str(quotes['date'].iloc[-1])):
+            if (data['date'].iloc[-1] == str(quotes['date'].iloc[-1])):
                 return data
 
         data = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
@@ -40,137 +43,53 @@ class DoubleST:
         data.to_csv(os.path.join(self.__directory, 'dobleST.csv'), index=False)  # write data to file
         return data
 
-    def long_buy(self, previous: pd.DataFrame, current: pd.DataFrame) -> bool:
-        if previous['close'] <= previous['ST_FAST'] and previous['close'] > previous['ST_SLOW']:
-            if current['open'] > current['ST_FAST'] and current['open'] > current['ST_SLOW']:
-                return True
-        return False
-
-    def long_sell(self, open: float, close: float, st3: float) -> bool:
-        if close < st3 or open < st3:
-            return True
-        return False
-
-    def short_buy(self, previous: pd.DataFrame, current: pd.DataFrame) -> bool:
-        if previous['ST_FAST'] > previous['ST_SLOW']:
-            if previous['open'] > previous['ST_FAST'] and previous['close'] >= previous['ST_FAST']:
-                if current['open'] < current['ST_FAST'] or current['close'] < current['ST_FAST']:
-                    return True
-        return False
-
-    def short_take_profit(self, short_prise: float, open: float, close: float, low: float) -> bool:
-        return True if open < short_prise - 20 or close < short_prise - 20 or low < short_prise - 20 else False
-
     def calculate(self, data: pd.DataFrame, var_profit: float = None) -> None:
         if var_profit is None:
             var_profit = self.__var_profit
 
-        account = 0  # amount of money
         stocks = 0  # amount of stocks
-        action = None  # 'BUY' or 'SELL'
-        index_open = None  # index open deal
-        commission = 0.0005  # broker commission is 0,05%
+        buy_limit = []
+        sell_limit = []
 
         for index, row in data.iterrows():
             # config
             if pd.isnull(row['ST_FAST']) or pd.isnull(row['ST_SLOW']):
                 continue
             elif index == len(data) - 1 and stocks > 0:
-                action = 'LONG_SELL'
+                signal = 'LONG_SELL'
             elif index == len(data) - 1 and stocks < 0:
-                action = 'SHORT_SELL'
+                signal = 'SHORT_SELL'
 
-            # take profit
-            if stocks > 0:  # long sell                
-                take_profit = data.loc[index_open,'BUY_PRISE'] + var_profit
-                if take_profit <= row['open'] or take_profit <= row['close'] or take_profit <= row['high']:
-                    data.loc[index_open, 'SIGNAL_CLOSE'] = 'LONG_TAKE_PROFIT'                
-                    data.loc[index_open,'COMMISSION'] += round(take_profit*10 * commission,3 )                   
-                    data.loc[index_open, 'P/L'] = (var_profit) * 10
-                    stocks = 0
-                    data.loc[index_open, 'SELL_PRISE'] = take_profit
-                    index_open = None
-                    action = None
-                    account += take_profit*10
-                    account -= take_profit*10 * commission
-            elif stocks < 0:  # short sell
-                if row['open'] > row['ST_FAST'] or row['close'] > row['ST_FAST']or row['high']> row['ST_FAST']:
-                    data.loc[index_open, 'SIGNAL_CLOSE'] = 'SHORT_SELL'
-                    close_price = row['ST_FAST'] if row['open']<row['ST_FAST']else data.loc[index-1,'ST_FAST']                    
-                    data.loc[index_open,'COMMISSION']+= round(close_price*10 * commission,3)                   
-                    data.loc[index_open, 'P/L'] = (data.loc[index_open,'BUY_PRISE'] -close_price) * 10
-                    stocks = 0
-                    data.loc[index_open, 'SELL_PRISE'] = close_price
-                    index_open = None
-                    action = None
-                    account -= close_price*10
-                    account -= close_price*10 * commission
+            # if len(buy_limit) > 0:
 
-            # actions
-            if action == 'LONG_BUY' and stocks == 0:
-                data.loc[index, 'SIGNAL_OPEN'] = action
-                prise = (data.loc[index - 2, 'ST_FAST'])                
-                data.loc[index,'COMMISSION'] = round(prise *10* commission,3)                
-                stocks = 10
-                data.loc[index, 'BUY_PRISE'] = prise
-                index_open = index
-                action = None
-                account -= prise*10
-                account -= prise * commission
-            elif action == 'LONG_SELL' and stocks > 0:
-                data.loc[index_open, 'SIGNAL_CLOSE'] = action
-                data.loc[index_open,'COMMISSION']+= round(row['open']*10 * commission,3)
-                data.loc[index_open, 'P/L'] = (row['open'] - data.loc[index_open,'BUY_PRISE']) * 10
-                stocks = 0
-                data.loc[index_open, 'SELL_PRISE'] = row['open']
-                index_open=None
-                action = None
-                account += row['open']*10
-                account -= row['open']*10 * commission
-            elif action == 'SHORT_BUY' and stocks == 0:                
-                data.loc[index, 'SIGNAL_OPEN'] = action                
-                data.loc[index, 'COMMISSION'] = round(row['open']*10 * commission,3)
-                stocks = -10
-                data.loc[index, 'BUY_PRISE'] = row['open']
-                index_open = index
-                action = None
-                account += row['open']*10
-                account -= row['open']*10 * commission
-
-            # signals
+                # signals
             if stocks == 0:
-                if self.long_buy(data.loc[index - 1], row):
-                    action = 'LONG_BUY'
-                elif self.short_buy(data.loc[index - 1], row):
-                    action = 'SHORT_BUY'
+                price = long_buy(data.loc[index - 1], row)
+                if price is not None:
+                    buy_limit.append(price)
+                    if len(sell_limit) > 0:
+                        sell_limit.pop(0)
+
+                price = short_buy(data.loc[index - 1], row)
+                if price is not None:
+                    sell_limit.append(price)
             elif stocks > 0:
-                if self.long_sell(row['open'], row['close'], row['ST_FAST']):
-                    action = 'LONG_SELL'
+                price = long_sell(row)
+                if price is not None:
+                    sell_limit.append(price)
 
-        print(f'var_profit: {round(var_profit, 2)}, Final account: {round(account, 3)}')
-
-        long_buy_count = data['SIGNAL_OPEN'].value_counts().get('LONG_BUY', 0)
-        long_sell_count = data['SIGNAL_CLOSE'].value_counts().get('LONG_SELL', 0)
-        long_take_profit_count = data['SIGNAL_CLOSE'].value_counts().get('LONG_TAKE_PROFIT', 0)
-        short_buy_count = data['SIGNAL_OPEN'].value_counts().get('SHORT_BUY', 0)
-        short_sell_count = data['SIGNAL_CLOSE'].value_counts().get('SHORT_SELL', 0)
-        short_take_profit_count = data['SIGNAL_CLOSE'].value_counts().get('SHORT_TAKE_PROFIT', 0)
-
-        return {'data': data, 'account': account, 'long_buy_count': long_buy_count,
-                'long_sell_count': long_sell_count, 'long_take_profit_count': long_take_profit_count,
-                'short_buy_count': short_buy_count, 'short_sell_count': short_sell_count,
-                'short_take_profit_count': short_take_profit_count}
+        # print(f'var_profit: {round(var_profit, 2)}, Final account: {round(account, 3)}')
 
     def show(self, data: pd.DataFrame) -> None:
         # list of deals
         deals = pd.DataFrame()
-        deals[['ticker', 'date', 'SIGNAL_OPEN','SIGNAL_CLOSE',  'BUY_PRISE', 'SELL_PRISE', 'P/L','COMMISSION']] = data[['ticker', 'date', 'SIGNAL_OPEN','SIGNAL_CLOSE', 'BUY_PRISE', 'SELL_PRISE', 'P/L','COMMISSION']]
-        deals = deals[deals['P/L'].notnull()]
+        deals[['ticker', 'date', 'SIGNAL_OPEN', 'SIGNAL_CLOSE',  'BUY_PRISE', 'SELL_PRISE']
+              ] = data[['ticker', 'date', 'SIGNAL_OPEN', 'SIGNAL_CLOSE', 'BUY_PRISE', 'SELL_PRISE']]
+        # deals = deals[deals['P/L'].notnull()]
         deals.to_excel(os.path.join(self.__directory, 'deals.xlsx'), index=False)
 
         # report
         print('|SIGNAL|COUNT|SUM P/L|VIN RATE|')
-
 
         # candlestick
         data.set_index('date', inplace=True)
