@@ -88,19 +88,19 @@ Please, enter mode:'''
 
             quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
             end_time = time.time()
-            print('Quotes completed...'+str(round(end_time-start_time,3))+'s')
+            print('Quotes completed...'+str(round(end_time-start_time, 3))+'s')
             print('Start prepare data...')
             start_time = time.time()
             double_st = DoubleST(manager.get_directory())
 
             data = double_st.run(quotes)
             end_time = time.time()
-            print('Data completed...'+str(round(end_time-start_time,3))+'s')
+            print('Data completed...'+str(round(end_time-start_time, 3))+'s')
             print('Start calculate...')
             start_time = time.time()
-            data = double_st.calculate(data)['data']
+            data = double_st.calculate(data)
             end_time = time.time()
-            print('Calculate completed...'+str(round(end_time-start_time,3))+'s')
+            print('Calculate completed...'+str(round(end_time-start_time, 3))+'s')
             print('Start show...')
             double_st.show(data)
 
