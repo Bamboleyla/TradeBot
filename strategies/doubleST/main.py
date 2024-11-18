@@ -75,28 +75,61 @@ class DoubleST:
                     if order['order'] == 'BUY_LIMIT':
                         if order['price'] <= row['high'] and order['price'] >= row['low']:
                             stocks += 10
-                            data.loc[index, 'SIGNAL_OPEN'] = order['signal']
+                            data.loc[index, 'SIGNAL'] = order['signal']
                             data.loc[index, 'BUY_PRICE'] = order['price']
                             orders.clear()
                     elif order['order'] == 'SELL_LIMIT':
                         if order['price'] <= row['high'] and order['price'] >= row['low']:
                             stocks -= 10
-                            data.loc[index, 'SIGNAL_CLOSE'] = order['signal']
+                            data.loc[index, 'SIGNAL'] = order['signal']
                             data.loc[index, 'SELL_PRICE'] = order['price']
                             orders.clear()
 
         return data
 
-    def show(self, data: pd.DataFrame) -> None:
+    def report(self, data: pd.DataFrame) -> None:
         # list of deals
-        deals = pd.DataFrame()
-        deals[['ticker', 'date', 'SIGNAL_OPEN', 'SIGNAL_CLOSE',  'BUY_PRICE', 'SELL_PRICE']
-              ] = data[['ticker', 'date', 'SIGNAL_OPEN', 'SIGNAL_CLOSE', 'BUY_PRICE', 'SELL_PRICE']]
-        # deals = deals[deals['P/L'].notnull()]
+        deals = pd.DataFrame()  # create empty DataFrame
+        # add columns
+        deals[['ticker', 'date', 'SIGNAL', 'BUY_PRICE', 'SELL_PRICE']
+              ] = data[['ticker', 'date', 'SIGNAL', 'BUY_PRICE', 'SELL_PRICE']]
+        deals = deals[deals['SIGNAL'].notnull()]
+        deals = deals.assign(COMMISSION=None, **{'P/L': None}, ACCOUNT=None)  # add columns
+
+        init = 3000  # initial capital
+        account = init  # current capital
+        commission = 0.00005  # commission
+        last_buy_price = 0  # last buy price
+        trades = 0  # number of trades
+
+        for index, row in deals.iterrows():
+            if not pd.isnull(row['BUY_PRICE']):
+                deals.loc[index, 'COMMISSION'] = round(10 * row['BUY_PRICE'] * commission, 2)
+                account -= round((10 * row['BUY_PRICE'])+deals.loc[index, 'COMMISSION'], 2)
+                deals.loc[index, 'ACCOUNT'] = account
+                last_buy_price = row['BUY_PRICE']
+
+            elif not pd.isnull(row['SELL_PRICE']):
+                deals.loc[index, 'COMMISSION'] = round(10 * row['SELL_PRICE'] * commission, 2)
+                account += round((10 * row['SELL_PRICE'])-deals.loc[index, 'COMMISSION'], 2)
+                deals.loc[index, 'ACCOUNT'] = account
+                deals.loc[index, 'P/L'] = (row['SELL_PRICE']-last_buy_price) * 10
+                last_buy_price = 0
+                trades += 1
+
         deals.to_excel(os.path.join(self.__directory, 'deals.xlsx'), index=False)
 
+        loss = len(deals[deals['P/L'] < 0])  # number of losses
+        profit = len(deals[deals['P/L'] > 0])  # number of profits
+        win_rate = round((profit / (loss + profit)) * 100, 2)  # win rate
+        result = (account - init)/init*100  # result in %
+
         # report
-        print('|SIGNAL|COUNT|SUM P/L|VIN RATE|')
+        print(f'|TRADES|LOSS|WIN|WIN RATE|ACCOUNT_START|ACCOUNT_END|RESULT|\n|  {trades}  | {loss}  | {
+              profit} |  {win_rate}% |    {init}     |  {round(account, 2)}  | {round(result, 2)} |')
+
+    def show(self, data: pd.DataFrame) -> None:
+        self.report(data)
 
         # candlestick
         data.set_index('date', inplace=True)
@@ -109,29 +142,29 @@ class DoubleST:
 
         fplt.plot(data['BUY_PRICE'], color='b', style='x', width=2)
 
-        long_buy = data.loc[data['SIGNAL_OPEN'] == 'LONG_BUY', 'BUY_PRICE']
+        long_buy = data.loc[data['SIGNAL'] == 'LONG_BUY', 'BUY_PRICE']
         if not long_buy.empty:
             fplt.plot(long_buy-1, color='#4a5', style='^', legend='buy', width=2)
 
         fplt.plot(data['SELL_PRICE'], color='b', style='x', width=2)
 
-        long_sell = data.loc[data['SIGNAL_CLOSE'] == 'LONG_SELL', 'SELL_PRICE']
+        long_sell = data.loc[data['SIGNAL'] == 'LONG_SELL', 'SELL_PRICE']
         if not long_sell.empty:
             fplt.plot(long_sell+1, color='#4a6', style='o', legend='sell', width=2)
 
-        long_take_profit = data.loc[data['SIGNAL_CLOSE'] == 'LONG_TAKE_PROFIT', 'SELL_PRICE']
+        long_take_profit = data.loc[data['SIGNAL'] == 'LONG_TAKE_PROFIT', 'SELL_PRICE']
         if not long_take_profit.empty:
             fplt.plot(long_take_profit+1, color='#4a5', style='p', legend='take profit', width=2)
 
-        short_buy = data.loc[data['SIGNAL_OPEN'] == 'SHORT_BUY', 'BUY_PRICE']
+        short_buy = data.loc[data['SIGNAL'] == 'SHORT_BUY', 'BUY_PRICE']
         if not short_buy.empty:
             fplt.plot(short_buy-1, color='r', style='^', legend='short buy', width=2)
 
-        short_sell = data.loc[data['SIGNAL_CLOSE'] == 'SHORT_SELL', 'SELL_PRICE']
+        short_sell = data.loc[data['SIGNAL'] == 'SHORT_SELL', 'SELL_PRICE']
         if not short_sell.empty:
             fplt.plot(short_sell+1, color='r', style='o', legend='short sell', width=2)
 
-        short_take_profit = data.loc[data['SIGNAL_CLOSE'] == 'SHORT_TAKE_PROFIT', 'SELL_PRICE']
+        short_take_profit = data.loc[data['SIGNAL'] == 'SHORT_TAKE_PROFIT', 'SELL_PRICE']
         if not short_take_profit.empty:
             fplt.plot(short_take_profit-1, color='r', style='p', legend='short take profit', width=2)
 
