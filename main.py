@@ -50,7 +50,7 @@ def prepare_tickers() -> None:
         if not os.path.exists('tickers/'+ticker+"/config.json"):
             # Create default config
             default = {
-                'var_profit': 1.5, 'period': [10, 20], 'multiplier': [3, 5]
+                'var_take': 1.5, 'period': [10, 20], 'multiplier': [3, 5]
             }
             # Create config file
             with open('tickers/'+ticker+"/config.json", 'w') as f:
@@ -76,10 +76,11 @@ Please, enter mode:'''
 
         # Choose mode
         mode = int(input(message))
+        # Download historical data
         if mode == 1:
             loader = Downloader(tickers)
             asyncio.run(loader.run())
-
+        # Show
         elif mode == 2:
             print('Start reading quotes...')
             start_time = time.time()
@@ -103,15 +104,15 @@ Please, enter mode:'''
             print('Calculate completed...'+str(round(end_time-start_time, 3))+'s')
             print('Start show...')
             double_st.show(data)
-
+        # Optimize
         elif mode == 3:
             manager = Manager('SBER')
 
             data = pd.read_csv(manager.get_doubleST_path(), header=0)
 
             double_st = DoubleST(manager.get_directory())
-            double_st.optimize(data, {'start': 1.0, 'step': 0.1, 'end': 5.0})
-
+            double_st.optimize(data, {'start': 1.0, 'step': 0.1, 'end': 3.0})
+        # Exit
         elif mode == 0:
             print("Program exit")
         else:

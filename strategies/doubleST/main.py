@@ -21,7 +21,7 @@ class DoubleST:
 
         with open(os.path.join(self.__directory, 'config.json'), 'r') as f:
             config = json.load(f)
-            self.__var_profit = config['var_profit']
+            self.__var_take = config['var_take']
             self.__period = config['period']
             self.__multiplier = config['multiplier']
 
@@ -43,12 +43,13 @@ class DoubleST:
         data.to_csv(os.path.join(self.__directory, 'dobleST.csv'), index=False)  # write data to file
         return data
 
-    def calculate(self, data: pd.DataFrame, var_profit: float = None) -> pd.DataFrame:
-        if var_profit is None:
-            var_profit = self.__var_profit
+    def calculate(self, data: pd.DataFrame, var_take: float = None) -> pd.DataFrame:
+        if var_take is None:
+            var_take = self.__var_take
 
         stocks = 0  # amount of stocks
         orders = []  # list of orders
+        take_profit = None
 
         for index, row in data.iterrows():
             # config
@@ -56,8 +57,6 @@ class DoubleST:
                 continue
             elif index == len(data) - 1 and stocks > 0:
                 orders.append({'order': 'SELL_LIMIT', 'signal': 'LONG_SELL', 'price': row['open']})
-            elif 'TAKE_PROFIT' in data.columns and data.loc[index - 1, 'TAKE_PROFIT'] is not None:
-                data.loc[index, 'TAKE_PROFIT'] = data.loc[index - 1, 'TAKE_PROFIT']
 
                 # signals
             if stocks == 0:
@@ -79,7 +78,7 @@ class DoubleST:
                             stocks += 10
                             data.loc[index, 'SIGNAL'] = order['signal']
                             data.loc[index, 'BUY_PRICE'] = order['price']
-                            data.loc[index, 'TAKE_PROFIT'] = round(order['price'] + var_profit, 2)
+                            take_profit = round(order['price'] + var_take, 2)
                             orders.clear()
                     elif order['order'] == 'SELL_LIMIT':
                         if order['price'] <= row['high'] and order['price'] >= row['low']:
@@ -87,17 +86,22 @@ class DoubleST:
                             data.loc[index, 'SIGNAL'] = order['signal']
                             data.loc[index, 'SELL_PRICE'] = order['price']
                             orders.clear()
-                            data.loc[index, 'TAKE_PROFIT'] = None
+                            take_profit = None
 
-            if 'TAKE_PROFIT' in data.columns and data.loc[index, 'TAKE_PROFIT'] is not None:
-                if data.loc[index, 'TAKE_PROFIT'] <= row['high'] and data.loc[index, 'TAKE_PROFIT'] >= row['low']:
+            if take_profit is not None:
+                if take_profit <= row['high'] and take_profit >= row['low']:
                     stocks -= 10
                     data.loc[index, 'SIGNAL'] = 'TAKE_PROFIT'
-                    data.loc[index, 'SELL_PRICE'] = data.loc[index, 'TAKE_PROFIT']
-                    data.loc[index, 'TAKE_PROFIT'] = None
+                    data.loc[index, 'SELL_PRICE'] = take_profit
+                    take_profit = None
+                else:
+                    data.loc[index, 'TAKE_PROFIT'] = take_profit
+
         return data
 
-    def report(self, data: pd.DataFrame) -> None:
+    def report(self, data: pd.DataFrame, mode: str = 'default', var_take: float = None) -> pd.DataFrame:
+        if var_take is None:
+            var_take = self.__var_take
         # list of deals
         deals = pd.DataFrame()  # create empty DataFrame
         # add columns
@@ -126,8 +130,8 @@ class DoubleST:
                 deals.loc[index, 'P/L'] = (row['SELL_PRICE']-last_buy_price) * 10
                 last_buy_price = 0
                 trades += 1
-
-        deals.to_excel(os.path.join(self.__directory, 'deals.xlsx'), index=False)
+        if mode == 'default':
+            deals.to_excel(os.path.join(self.__directory, 'deals.xlsx'), index=False)
 
         loss = len(deals[deals['P/L'] < 0])  # number of losses
         profit = len(deals[deals['P/L'] > 0])  # number of profits
@@ -135,9 +139,11 @@ class DoubleST:
         result = (account - init)/init*100  # result in %
 
         # report
-        report = pd.DataFrame(columns=['trades', 'loss', 'profit', 'win_rate', 'account_start', 'account_end', 'result'])
-        report.loc[len(report)] = [trades, loss, profit, win_rate, init, round(account, 2), str(round(result, 2))+'%']
+        report = pd.DataFrame(columns=['var_take', 'trades', 'loss', 'profit', 'win_rate', 'account_start', 'account_end', 'result'])
+        report.loc[len(report)] = [var_take, trades, loss, profit, win_rate, init, round(account, 2), str(round(result, 2))+'%']
         print(report)
+
+        return report
 
     def show(self, data: pd.DataFrame) -> None:
         self.report(data)
@@ -183,19 +189,17 @@ class DoubleST:
         fplt.add_legend('Double SuperTrend')
         fplt.show()
 
-    def optimize(self, data: pd.DataFrame, var_profit: dict) -> None:
-        results = pd.DataFrame(columns=['var_profit', 'account', 'long_buy_count', 'long_sell_count',
-                               'long_take_profit_count', 'short_buy_count', 'short_sell_count', 'short_take_profit_count'])
+    def optimize(self, data: pd.DataFrame, var_take: dict) -> None:
 
-        start = var_profit['start']
+        start = var_take['start']
+        results = pd.DataFrame()
 
-        while start <= var_profit['end']:
-            result = self.calculate(data, start)
-            results.loc[len(results)] = {'var_profit': round(start, 3), 'account': round(result['account'], 3), 'long_buy_count': result['long_buy_count'],
-                                         'long_sell_count': result['long_sell_count'], 'long_take_profit_count': result['long_take_profit_count'],
-                                         'short_buy_count': result['short_buy_count'], 'short_sell_count': result['short_sell_count'],
-                                         'short_take_profit_count': result['short_take_profit_count']}
+        while start <= var_take['end']:
+            data_copy = data.copy()
+            result = self.calculate(data_copy, start)
+            report = self.report(result, 'optimization', start)
+            results = pd.concat([results, report])
 
-            start += var_profit['step']
+            start += var_take['step']
 
-        results.to_excel(os.path.join(self.__directory, 'optimize.xlsx'), index=False)
+        results.to_excel(os.path.join(self.__directory, 'optimization.xlsx'), index=False)
