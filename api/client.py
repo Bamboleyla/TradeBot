@@ -2,7 +2,6 @@ import logging
 import uuid
 import websockets
 import json
-import asyncio
 import requests
 
 from typing import Literal, List
@@ -20,68 +19,14 @@ TickerType = Literal['SBER', 'GASP', 'ALRS']
 class AlorClientService:
 
     def __init__(self):
-        """
-        Initialize an instance of AlorClientService.
-
-        This method reads configuration from file "settings.ini" and load
-        the following settings into the instance:
-
-        - access_token: access token for ALOR
-        - guid: a unique identifier for the client
-        - ws_url: URL for ALOR WebSocket
-
-        :return: An instance of AlorClientService
-        """
         config = AlorConfiguration()  # Load ALOR broker configuration
         token = AlorTokenService()  # Load token service
 
-        self.access_token = token.get_access_token()['access_token']
-        self.ws_url = config.websocket_url
-        self.is_work = config.is_work
-
-    async def create_subscription_for_order_book(self, ticker: TickerType) -> None:
-        if self.access_token is None:
-            logger.error("No access token")
-            return
-        elif not self.is_work:
-            logger.error("ALOR broker is not working")
-            return
-
-        else:
-            try:
-                async with websockets.connect(self.ws_url) as websocket:
-                    message = {
-                        "opcode": "OrderBookGetAndSubscribe",
-                        "code": ticker,
-                        "depth": 10,
-                        "exchange": "MOEX",
-                        "format": "Simple",
-                        "frequency": 0,
-                        "guid": uuid.uuid4().hex,
-                        "token": self.access_token
-                    }
-                    await websocket.send(json.dumps(message))
-                    print("Subscription sent. Waiting for response...")
-                    response = await websocket.recv()
-                    print("Response received:", response)
-
-                    while True:
-                        await asyncio.sleep(5)
-                        await websocket.send(b'\x89')  # отправка пинг-фрейма
-                        try:
-                            response = await asyncio.wait_for(websocket.recv(), timeout=10)
-                            if response == b'\x8a':  # pong-фрейм
-                                logger.info('Pong received')
-                            else:
-                                logger.info('Received unexpected response: %s', json.dumps(response))
-                        except asyncio.TimeoutError:
-                            logger.warning('Timeout waiting for response')
-                        except websockets.ConnectionClosed:
-                            logger.error('WebSocket connection closed')
-                            break
-
-            except Exception as e:
-                logger.error('Error connecting to websocket: %s', e)
+        self.access_token = token.get_access_token()['access_token']  # Get access token
+        self.ws_url = config.websocket_url  # Get websocket url
+        self.is_work = config.is_work  # Check if ALOR is work
+        self.__url = config.https_url+'/md/v2/Clients/'+config.stock_market+'/'+config.contract  # Get https url
+        self.__headers = {'Accept': 'application/json', 'Authorization': 'Bearer ' + self.access_token}
 
     async def ws_history_date(self, ticker: TickerType, start_date: datetime) -> List:
 
@@ -123,19 +68,58 @@ class AlorClientService:
 
         return responses
 
-    async def get_status(self) -> str:
+    async def get_balance(self) -> dict:
+        """
+        Get current balance from ALOR.
+
+        The method makes a GET request to the ALOR service with the JWT token as a parameter.
+        If the response is 200, it extracts the balance from the JSON response and returns it.
+        If the response is not 200, it logs an error. If there is an error while decoding
+        the JSON response, it logs an error.
+
+        :return: A dictionary containing the balance, or None if an error occurred
+        """
         try:
-            url = "https://api.alor.ru/md/v2/Clients/MOEX/D90320/summary"
 
-            headers = {
-                'Accept': 'application/json',
-                'Authorization': 'Bearer ' + self.access_token
-            }
-
-            response = requests.request("GET", url, headers=headers, data={})
-            response = response.json()
-
-            return response
+            response = requests.request("GET", self.__url+'/summary', headers=self.__headers, data={})
+            return response.json()
 
         except Exception as e:
-            logger.error('Error connecting to websocket: %s', e)
+            logger.error('Error getting balance: %s', e)
+
+    async def get_positions(self) -> list:
+        """
+        Retrieve the current positions from ALOR.
+
+        This method makes a GET request to the ALOR service with the JWT token as a parameter
+        to retrieve the current positions. If the response is successful, it returns the positions
+        as a list. If an error occurs during the request or processing the response, it logs an error.
+
+        :return: A list containing the current positions, or an empty list if an error occurred.
+        """
+        try:
+
+            response = requests.request("GET", self.__url+'/positions', headers=self.__headers, data={})
+            return response.json()
+
+        except Exception as e:
+            logger.error('Error getting positions: %s', e)
+
+    async def get_orders(self) -> list:
+        """
+        Retrieve the current orders from ALOR.
+
+        This method makes a GET request to the ALOR service with the JWT token as a parameter
+        to retrieve the current orders. If the response is a string, it returns an empty list.
+        Otherwise, it returns the orders as a list. If an error occurs during the request or
+        processing the response, it logs an error.
+
+        :return: A list containing the current orders, or an empty list if a string response or an error occurred.
+        """
+        try:
+
+            response = requests.request("GET", self.__url+'/orders', headers=self.__headers, data={})
+            return response.json()
+
+        except Exception as e:
+            logger.error('Error getting orders: %s', e)
