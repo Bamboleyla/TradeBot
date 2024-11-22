@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from services.file import FileService
-from api.services.client import AlorClientService
+from api.client import AlorClientService
 
 __all__ = "Downloader"
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class Downloader:
     def __init__(self, tickers: list[str]) -> None:
         self.tickers = tickers  # list of tickers
-        self.indexes =['IMOEX']
+        self.indexes = ['IMOEX']
 
     async def run(self) -> pd.DataFrame:
         file = FileService()
@@ -26,7 +26,7 @@ class Downloader:
             quotes = pd.read_csv(file_path, header=0)  # read quotes from file data.csv
 
             # get last date from file, if there is no data then it will be firs minute of first day of previous month
-            last_date = file.get_last_date(quotes)            
+            last_date = file.get_last_date(quotes)
 
             data = await client.ws_history_date(ticker, last_date)  # get data from last date to now
 
@@ -50,7 +50,7 @@ class Downloader:
 
             logger.info(f"Downloaded {ticker} quotes, {percentage:.2f}% completed")
             print(f"Downloaded {ticker} quotes, {percentage:.2f}% completed")
-            
+
         for index in self.indexes:
             file_path = os.path.join(os.path.dirname(os.path.dirname(__file__))+'\\indexes\\', index, 'data.csv')  # file path for index
 

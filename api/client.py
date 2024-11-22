@@ -8,7 +8,7 @@ import requests
 from typing import Literal, List
 from datetime import datetime, timedelta
 from configurations.alor import AlorConfiguration
-from api.services.token import AlorTokenService
+from api.token import AlorTokenService
 
 __all__ = "AlorClientService"
 
@@ -124,30 +124,18 @@ class AlorClientService:
         return responses
 
     async def get_status(self) -> str:
-        try:            
-            async with websockets.connect(self.ws_url) as websocket:  # connect to websocket
-                message = {
-                    "opcode": "SummariesGetAndSubscribeV2",
-                    "portfolio": "D90320",
-                    "skipHistory": False,
-                    "exchange": "MOEX",
-                    "format": "Simple",
-                    "frequency": 100,
-                    "guid": uuid.uuid4().hex,
-                    "token": self.access_token
-                }
-                await websocket.send(json.dumps(message))  # send message
-                # receive response
-                while True:
-                    try:
-                        response = await websocket.recv()  # receive response
-                        data = json.loads(response)['data']  # convert response to dictionary
-                        print(data)  # print data
-                        return data
-                    except websockets.ConnectionClosed:
-                        break
+        try:
+            url = "https://api.alor.ru/md/v2/Clients/MOEX/D90320/summary"
+
+            headers = {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + self.access_token
+            }
+
+            response = requests.request("GET", url, headers=headers, data={})
+            response = response.json()
+
+            return response
 
         except Exception as e:
-                logger.error('Error connecting to websocket: %s', e)
-
-        
+            logger.error('Error connecting to websocket: %s', e)

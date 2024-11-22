@@ -9,6 +9,7 @@ from logging.handlers import RotatingFileHandler
 from services.downloader import Downloader
 from services.manager import Manager
 from strategies.doubleST.main import DoubleST
+from accounts.alor import AlorAccount
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ if __name__ == "__main__":
     1 - download historical data;
     2 - show;
     3 - optimize;
+    4 - run;
     0 - exit;
                          
 Please, enter mode:'''
@@ -112,6 +114,11 @@ Please, enter mode:'''
 
             double_st = DoubleST(manager.get_directory())
             double_st.optimize(data, {'start': 1.0, 'step': 0.1, 'end': 3.0})
+        # Run
+        elif mode == 4:
+            print("Start running...")
+            alor = AlorAccount()
+            alor.run()
         # Exit
         elif mode == 0:
             print("Program exit")
