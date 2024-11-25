@@ -3,6 +3,7 @@ import os
 import pandas as pd
 
 from services.file import FileService
+from configurations.alor import AlorConfiguration
 from api.client import AlorClientService
 
 __all__ = "Downloader"
@@ -11,8 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class Downloader:
-    def __init__(self, tickers: list[str]) -> None:
-        self.tickers = tickers  # list of tickers
+    def __init__(self) -> None:
+        config = AlorConfiguration()  # Load ALOR broker configuration
+        self.tickers = config.tickers  # list of tickers
         self.indexes = ['IMOEX']
 
     async def run(self) -> pd.DataFrame:

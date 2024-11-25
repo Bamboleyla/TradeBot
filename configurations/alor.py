@@ -21,6 +21,7 @@ class AlorConfiguration:
         self.websocket_url: str = alor['websocket_url']  # Alor WebSocket URL
         self.https_url: str = alor['https_url']  # Alor HTTPS URL
         self.stock_market: str = alor['stock_market']  # Alor stock market
+        self.tickers: list = alor['tickers']  # List of tickers
 
     @property
     def is_work(self) -> bool:

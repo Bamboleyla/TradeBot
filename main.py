@@ -10,6 +10,7 @@ from services.downloader import Downloader
 from services.manager import Manager
 from strategies.doubleST.main import DoubleST
 from accounts.alor import AlorAccount
+from configurations.alor import AlorConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,9 @@ def prepare_logs() -> None:
 
 
 def prepare_tickers() -> None:
-    for ticker in tickers:
+    config = AlorConfiguration()
+
+    for ticker in config.tickers:
         # Check ticker directory
         if not os.path.exists('tickers/'+ticker+"/"):
             # Create ticker directory
@@ -63,7 +66,6 @@ if __name__ == "__main__":
     prepare_logs()  # Prepare logging system
     logger.info("Program start")
 
-    tickers = ['ALRS', 'BANE', 'BSPB', 'CBOM', 'CHMF', 'FLOT', 'GCHE', 'HEAD', 'LENT', 'MAGN', 'MOEX', 'ROSN', 'SBER', 'YDEX']  # Add your tickers here
     prepare_tickers()  # Prepare directories for tickers (if they don't exist)
 
     try:
@@ -80,7 +82,7 @@ Please, enter mode:'''
         mode = int(input(message))
         # Download historical data
         if mode == 1:
-            loader = Downloader(tickers)
+            loader = Downloader()
             asyncio.run(loader.run())
         # Show
         elif mode == 2:
