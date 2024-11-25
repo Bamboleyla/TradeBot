@@ -23,3 +23,12 @@ class Manager:
 
     def get_doubleST_path(self) -> str:
         return os.path.join(self.__dir, 'dobleST.csv')
+
+    def get_chart(self) -> pd.DataFrame:
+        if not os.path.exists(self.__dir+'/chart.csv'):  # if file with chart doesn't exist
+            quotes = self.get_quotes()  # get quotes
+            quotes['date'] = pd.to_datetime(quotes['date'])  # Convert 'date' column to datetime type
+            chart = quotes[quotes['date'] >= quotes['date'].dt.strftime('%Y%m%d').unique()[-2] + ' 10:00:00']  # get last 2 days
+            return chart
+
+        return pd.read_csv(self.__dir+'/chart.csv', header=0)

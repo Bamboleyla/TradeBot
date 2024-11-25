@@ -1,8 +1,10 @@
 import asyncio
+import pandas as pd
 
 from api.client import AlorClientService
 from configurations.alor import AlorConfiguration
 from services.downloader import Downloader
+from services.manager import Manager
 
 
 class AlorAccount:
@@ -16,3 +18,7 @@ class AlorAccount:
     def run(self):
         loader = Downloader()
         asyncio.run(loader.run())
+        for ticker in ['SBER', 'BSPB']:
+            manager = Manager(ticker)
+            chart = manager.get_chart()
+            print(chart)
