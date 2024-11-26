@@ -96,9 +96,17 @@ Please, enter mode:'''
             print('Quotes completed...'+str(round(end_time-start_time, 3))+'s')
             print('Start prepare data...')
             start_time = time.time()
-            double_st = DoubleST(manager.get_directory())
+            dir = manager.get_directory()
+            double_st = DoubleST(dir)
 
-            data = double_st.run(quotes)
+            if os.path.exists(os.path.join(dir, 'dobleST.csv')):  # if file with data exist
+                dobleST = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
+
+            # If the data and quotes have the same last dates, then there is no point in recalculating
+            data = dobleST if (dobleST['date'].iloc[-1] == str(quotes['date'].iloc[-1])) else double_st.run(quotes)
+
+            data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
+
             end_time = time.time()
             print('Data completed...'+str(round(end_time-start_time, 3))+'s')
             print('Start calculate...')

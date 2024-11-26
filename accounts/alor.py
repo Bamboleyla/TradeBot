@@ -5,6 +5,7 @@ from api.client import AlorClientService
 from configurations.alor import AlorConfiguration
 from services.downloader import Downloader
 from services.manager import Manager
+from strategies.doubleST.main import DoubleST
 
 
 class AlorAccount:
@@ -21,4 +22,13 @@ class AlorAccount:
         for ticker in ['SBER', 'BSPB']:
             manager = Manager(ticker)
             chart = manager.get_chart()
-            print(chart)
+            if chart is None:
+                quotes = manager.get_quotes()  # get quotes
+                quotes['date'] = pd.to_datetime(quotes['date'])  # Convert 'date' column to datetime type
+                two_days_quotes = quotes[quotes['date'] >= quotes['date'].dt.strftime('%Y%m%d').unique()[-2] + ' 10:00:00']  # get last 2 days
+                dir = manager.get_directory()
+                double_st = DoubleST(dir)
+                chart = double_st.run(two_days_quotes)
+                print(chart)
+            else:
+                pass

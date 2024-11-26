@@ -26,22 +26,13 @@ class DoubleST:
             self.__multiplier = config['multiplier']
 
     def run(self, quotes: pd.DataFrame) -> pd.DataFrame:
-        if os.path.exists(os.path.join(self.__directory, 'dobleST.csv')):  # if file with data exist
-            data = pd.read_csv(os.path.join(self.__directory, 'dobleST.csv'), header=0)
-
-            # If the data and quotes have the same last dates, then there is no point in recalculating
-            if (data['date'].iloc[-1] == str(quotes['date'].iloc[-1])):
-                return data
-
         data = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
 
         data['EMA'] = talib.EMA(data['close'].values, timeperiod=50)
 
         config = pd.DataFrame({'period': self.__period, 'multiplier': self.__multiplier})
-        data = super_trend(config, data)  # calculate SuperTrends
 
-        data.to_csv(os.path.join(self.__directory, 'dobleST.csv'), index=False)  # write data to file
-        return data
+        return super_trend(config, data)  # calculate SuperTrends
 
     def calculate(self, data: pd.DataFrame, var_take: float = None) -> pd.DataFrame:
         if var_take is None:
