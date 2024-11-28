@@ -44,7 +44,7 @@ class DoubleST:
 
         for index, row in data.iterrows():
             # config
-            if pd.isnull(row['ST_FAST']) or pd.isnull(row['ST_SLOW']):
+            if all(pd.isnull(row[col]) for col in ['ST_FAST_UP', 'ST_FAST_LOW', 'ST_SLOW_UP', 'ST_SLOW_LOW']):
                 continue
             elif index == len(data) - 1 and stocks > 0:
                 orders.append({'order': 'SELL_LIMIT', 'signal': 'LONG_SELL', 'price': row['open']})
@@ -144,8 +144,10 @@ class DoubleST:
         data.index = pd.to_datetime(data.index).tz_localize('Etc/GMT-5')
 
         fplt.candlestick_ochl(data[['open', 'close', 'high', 'low']])
-        fplt.plot(data['ST_FAST'], legend='ST_FAST', width=2)
-        fplt.plot(data['ST_SLOW'], legend='ST_SLOW', width=2)
+        fplt.plot(data['ST_FAST_UP'], legend='ST_FAST_UP', width=2)
+        fplt.plot(data['ST_FAST_LOW'], legend='ST_FAST_LOW', width=2)
+        fplt.plot(data['ST_SLOW_UP'], legend='ST_SLOW_UP', width=2)
+        fplt.plot(data['ST_SLOW_LOW'], legend='ST_SLOW_LOW', width=2)
         fplt.plot(data['EMA'], legend='EMA')
         fplt.plot(data['TAKE_PROFIT'], legend='TAKE_PROFIT', width=1, color='g')
 

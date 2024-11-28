@@ -16,6 +16,8 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
     data['upper_slow'] = data['high'] + (config.iloc[1]['multiplier'] * data['ATR_slow'])
     data['lower_slow'] = data['low'] - (config.iloc[1]['multiplier'] * data['ATR_slow'])
 
+    data = data.assign(ST_FAST_UP=None, ST_FAST_LOW=None, ST_SLOW_UP=None, ST_SLOW_LOW=None)
+
     # calculate SuperTrends
     prev_trend_fast = 'lower'
     prev_trend_slow = 'lower'
@@ -26,10 +28,10 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
             if pd.isnull(row['upper_'+prefix]) or pd.isnull(row['lower_'+prefix]):
                 return
 
-            upper = round(row['upper_'+prefix], 2)if pd.isnull(data.loc[index - 1, 'upper_'+prefix]
-                                                               ) else round(min(data.loc[index - 1, name], row['upper_'+prefix]), 2)
-            lower = round(row['lower_'+prefix], 2)if pd.isnull(data.loc[index - 1, 'lower_'+prefix]
-                                                               ) else round(max(data.loc[index - 1, name], row['lower_'+prefix]), 2)
+            upper = round(row['upper_'+prefix], 2) if pd.isnull(data.loc[index - 1, name+'_UP']
+                                                                ) else round(min(data.loc[index - 1, name+'_UP'], row['upper_'+prefix]), 2)
+            lower = round(row['lower_'+prefix], 2) if pd.isnull(data.loc[index - 1, name+'_LOW']
+                                                                ) else round(max(data.loc[index - 1, name+'_LOW'], row['lower_'+prefix]), 2)
 
             close = row['close']
             open = row['open']
@@ -37,28 +39,28 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
             if prev_trend == 'lower':
                 if open >= lower:
                     if close >= lower:
-                        data.loc[index, name] = lower
+                        data.loc[index, name+'_LOW'] = lower
                     elif close < lower:
-                        data.loc[index, name] = round(row['upper_'+prefix], 2)
+                        data.loc[index, name + '_UP'] = round(row['upper_'+prefix], 2)
                         prev_trend = 'upper'
                     else:
                         raise ValueError("error:001 Something went wrong")
                 elif open < lower:
-                    data.loc[index, name] = round(row['upper_'+prefix], 2)
+                    data.loc[index, name + '_UP'] = round(row['upper_'+prefix], 2)
                     prev_trend = 'upper'
                 else:
                     raise ValueError("error:002 Something went wrong")
             elif prev_trend == 'upper':
                 if open <= upper:
                     if close <= upper:
-                        data.loc[index, name] = upper
+                        data.loc[index, name + '_UP'] = upper
                     elif close > upper:
-                        data.loc[index, name] = round(row['lower_'+prefix], 2)
+                        data.loc[index, name + '_LOW'] = round(row['lower_'+prefix], 2)
                         prev_trend = 'lower'
                     else:
                         raise ValueError("error:003 Something went wrong")
                 elif open > upper:
-                    data.loc[index, name] = round(row['lower_'+prefix], 2)
+                    data.loc[index, name + '_LOW'] = round(row['lower_'+prefix], 2)
                     prev_trend = 'lower'
                 else:
                     raise ValueError("error:004 Something went wrong")
