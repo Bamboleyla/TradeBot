@@ -79,6 +79,7 @@ class DoubleST:
                             orders.clear()
                             take_profit = None
 
+                # take-profits
             if take_profit is not None:
                 if take_profit <= row['high'] and take_profit >= row['low']:
                     stocks -= 10
@@ -87,6 +88,12 @@ class DoubleST:
                     take_profit = None
                 else:
                     data.loc[index, 'TAKE_PROFIT'] = take_profit
+
+            if stocks > 0 and pd.to_datetime(row['date']).time() == pd.Timestamp('23:45:00').time():
+                stocks -= 10
+                data.loc[index, 'SIGNAL'] = 'MARKET_STOP'
+                data.loc[index, 'SELL_PRICE'] = row['open']
+                take_profit = None
 
         return data
 
@@ -144,10 +151,10 @@ class DoubleST:
         data.index = pd.to_datetime(data.index).tz_localize('Etc/GMT-5')
 
         fplt.candlestick_ochl(data[['open', 'close', 'high', 'low']])
-        fplt.plot(data['ST_FAST_UP'], legend='ST_FAST_UP', width=2)
-        fplt.plot(data['ST_FAST_LOW'], legend='ST_FAST_LOW', width=2)
-        fplt.plot(data['ST_SLOW_UP'], legend='ST_SLOW_UP', width=2)
-        fplt.plot(data['ST_SLOW_LOW'], legend='ST_SLOW_LOW', width=2)
+        fplt.plot(data['ST_FAST_UP'], legend='ST_FAST_UP', color='#FF0000', width=2)
+        fplt.plot(data['ST_FAST_LOW'], legend='ST_FAST_LOW', color='#228B22', width=2)
+        fplt.plot(data['ST_SLOW_UP'], legend='ST_SLOW_UP', color='#B22222', width=3)
+        fplt.plot(data['ST_SLOW_LOW'], legend='ST_SLOW_LOW', color='#006400', width=3)
         fplt.plot(data['EMA'], legend='EMA')
         fplt.plot(data['TAKE_PROFIT'], legend='TAKE_PROFIT', width=1, color='g')
 
