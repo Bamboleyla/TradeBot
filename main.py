@@ -86,15 +86,13 @@ Please, enter mode:'''
             asyncio.run(loader.run())
         # Show
         elif mode == 2:
-            print('Start reading quotes...')
             start_time = time.time()
             manager = Manager('SBER')
             quotes = manager.get_quotes()
-
             quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
             end_time = time.time()
             print('Quotes completed...'+str(round(end_time-start_time, 3))+'s')
-            print('Start prepare data...')
+
             start_time = time.time()
             dir = manager.get_directory()
             double_st = DoubleST(dir)
@@ -109,12 +107,12 @@ Please, enter mode:'''
 
             end_time = time.time()
             print('Data completed...'+str(round(end_time-start_time, 3))+'s')
-            print('Start calculate...')
+
             start_time = time.time()
             data = double_st.calculate(data)
             end_time = time.time()
             print('Calculate completed...'+str(round(end_time-start_time, 3))+'s')
-            print('Start show...')
+
             double_st.show(data)
         # Optimize
         elif mode == 3:

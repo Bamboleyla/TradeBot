@@ -6,9 +6,7 @@ import talib
 import json
 
 from indicators.super_trend import super_trend
-from strategies.doubleST.signals.long_open import long_buy
-from strategies.doubleST.signals.long_close import long_sell
-from strategies.doubleST.signals.short_open import short_buy
+from strategies.doubleST.signals.withDoubleTrend import WithDoubleTrend
 
 __all__ = "DoubleST_Strategy"
 
@@ -38,62 +36,19 @@ class DoubleST:
         if var_take is None:
             var_take = self.__var_take
 
-        stocks = 0  # amount of stocks
-        orders = []  # list of orders
-        take_profit = None
+        widthDT = WithDoubleTrend('not active', var_take)
 
         for index, row in data.iterrows():
             # config
-            if all(pd.isnull(row[col]) for col in ['ST_FAST_UP', 'ST_FAST_LOW', 'ST_SLOW_UP', 'ST_SLOW_LOW']):
+            if (sum(pd.isnull(row[col]) for col in ['ST_FAST_UP', 'ST_FAST_LOW', 'ST_SLOW_UP', 'ST_SLOW_LOW']) > 2):
                 continue
-            elif index == len(data) - 1 and stocks > 0:
-                orders.append({'order': 'SELL_LIMIT', 'signal': 'LONG_SELL', 'price': row['open']})
+            elif index == len(data) - 1:
+                widthDT.close(row)
 
-                # signals
-            if stocks == 0:
-                price = long_buy(data.loc[index - 1], row)
-                if price is not None:
-                    orders.clear()
-                    orders.append(price)
-            elif stocks > 0:
-                price = long_sell(row)
-                if price is not None:
-                    orders.clear()
-                    orders.append(price)
+            # signals
+            result = widthDT.run(data.loc[index - 1], row)
 
-                # orders
-            if len(orders) > 0:
-                for order in orders:
-                    if order['order'] == 'BUY_LIMIT':
-                        if order['price'] <= row['high'] and order['price'] >= row['low']:
-                            stocks += 10
-                            data.loc[index, 'SIGNAL'] = order['signal']
-                            data.loc[index, 'BUY_PRICE'] = order['price']
-                            take_profit = round(order['price'] + var_take, 2)
-                            orders.clear()
-                    elif order['order'] == 'SELL_LIMIT':
-                        if order['price'] <= row['high'] and order['price'] >= row['low']:
-                            stocks -= 10
-                            data.loc[index, 'SIGNAL'] = order['signal']
-                            data.loc[index, 'SELL_PRICE'] = order['price']
-                            orders.clear()
-                            take_profit = None
-
-                # take-profits
-            if take_profit is not None:
-                if take_profit <= row['high'] and take_profit >= row['low']:
-                    stocks -= 10
-                    data.loc[index, 'SIGNAL'] = 'TAKE_PROFIT'
-                    data.loc[index, 'SELL_PRICE'] = take_profit
-                    take_profit = None
-                else:
-                    data.loc[index, 'TAKE_PROFIT'] = take_profit
-
-            if stocks > 0 and pd.to_datetime(row['date']).time() == pd.Timestamp('23:45:00').time():
-                stocks -= 10
-                data.loc[index, 'SIGNAL'] = 'MARKET_STOP'
-                data.loc[index, 'SELL_PRICE'] = row['open']
-                take_profit = None
+            data.loc[index] = result
 
         return data
 
