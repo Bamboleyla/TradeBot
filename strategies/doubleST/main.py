@@ -37,6 +37,7 @@ class DoubleST:
             var_take = self.__var_take
 
         widthDT = WithDoubleTrend('not active', var_take)
+        result = pd.DataFrame()
 
         for index, row in data.iterrows():
             # config
@@ -46,11 +47,11 @@ class DoubleST:
                 widthDT.close(row)
 
             # signals
-            result = widthDT.run(data.loc[index - 1], row)
+            line = widthDT.run(data.loc[index - 1], row)
 
-            data.loc[index] = result
+            result = result._append(line, ignore_index=True)
 
-        return data
+        return result
 
     def report(self, data: pd.DataFrame, mode: str = 'default', var_take: float = None) -> pd.DataFrame:
         if var_take is None:
