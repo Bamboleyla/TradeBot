@@ -86,16 +86,14 @@ Please, enter mode:'''
             asyncio.run(loader.run())
         # Show
         elif mode == 2:
-            print('Start reading quotes...')
+
             start_time = time.time()
             manager = Manager('SBER')
             quotes = manager.get_quotes()
-
             quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
-            end_time = time.time()
-            print('Quotes completed...'+str(round(end_time-start_time, 3))+'s')
-            print('Start prepare data...')
-            start_time = time.time()
+            quotes_completed = time.time()
+            print('Quotes completed...'+str(round(quotes_completed-start_time, 3))+'s')
+
             dir = manager.get_directory()
             double_st = DoubleST(dir)
 
@@ -104,16 +102,14 @@ Please, enter mode:'''
 
             # If the data and quotes have the same last dates, then there is no point in recalculating
             data = dobleST if (dobleST['date'].iloc[-1] == str(quotes['date'].iloc[-1])) else double_st.run(quotes)
-
             data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
+            data_completed = time.time()
+            print('Data completed...'+str(round(data_completed-quotes_completed, 3))+'s')
 
-            end_time = time.time()
-            print('Data completed...'+str(round(end_time-start_time, 3))+'s')
-            print('Start calculate...')
-            start_time = time.time()
             data = double_st.calculate(data)
-            end_time = time.time()
-            print('Calculate completed...'+str(round(end_time-start_time, 3))+'s')
+            calculate_completed = time.time()
+            print('Calculate completed...'+str(round(calculate_completed-data_completed, 3))+'s')
+
             print('Start show...')
             double_st.show(data)
         # Optimize

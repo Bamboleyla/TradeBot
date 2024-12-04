@@ -36,7 +36,7 @@ class DoubleST:
         if var_take is None:
             var_take = self.__var_take
 
-        stocks = 0  # amount of stocks
+        position = 0  # amount of stocks
         orders = []  # list of orders
         take_profit = None
 
@@ -46,51 +46,45 @@ class DoubleST:
             # config
             if index == 0:
                 continue
-            elif index == len(data) - 1 and stocks > 0:
-                orders.append({'order': 'SELL_LIMIT', 'signal': 'LONG_SELL', 'price': row['open']})
+            elif index == len(data) - 1 and position > 0:
+                orders.append({'id': index, 'order': 'SELL_LIMIT', 'signal': 'LONG_SELL', 'price': row['open']})
 
-                # signals
-            if stocks == 0:
-                price = widthDT.long_open(data.loc[index - 1], row)
-                if price is not None:
-                    orders.clear()
-                    orders.append(price)
-            elif stocks > 0:
-                price = widthDT.long_close(row)
-                if price is not None:
-                    orders.clear()
-                    orders.append(price)
+            # signals
+            price = widthDT.run(position, data.loc[index - 1], row)
+            if price is not None:
+                price['id'] = index
+                orders.append(price)
 
                 # orders
             if len(orders) > 0:
                 for order in orders:
                     if order['order'] == 'BUY_LIMIT':
                         if order['price'] <= row['high'] and order['price'] >= row['low']:
-                            stocks += 10
+                            position += 10
                             data.loc[index, 'SIGNAL'] = order['signal']
                             data.loc[index, 'BUY_PRICE'] = order['price']
                             take_profit = round(order['price'] + var_take, 2)
-                            orders.clear()
+                            orders = list(filter(lambda item: item['id'] != order['id'], orders))
                     elif order['order'] == 'SELL_LIMIT':
                         if order['price'] <= row['high'] and order['price'] >= row['low']:
-                            stocks -= 10
+                            position -= 10
                             data.loc[index, 'SIGNAL'] = order['signal']
                             data.loc[index, 'SELL_PRICE'] = order['price']
-                            orders.clear()
+                            orders = list(filter(lambda item: item['id'] != order['id'], orders))
                             take_profit = None
 
                 # take-profits
             if take_profit is not None:
                 if take_profit <= row['high'] and take_profit >= row['low']:
-                    stocks -= 10
+                    position -= 10
                     data.loc[index, 'SIGNAL'] = 'TAKE_PROFIT'
                     data.loc[index, 'SELL_PRICE'] = take_profit
                     take_profit = None
                 else:
                     data.loc[index, 'TAKE_PROFIT'] = take_profit
 
-            if stocks > 0 and pd.to_datetime(row['date']).time() == pd.Timestamp('23:45:00').time():
-                stocks -= 10
+            if position > 0 and pd.to_datetime(row['date']).time() == pd.Timestamp('23:45:00').time():
+                position -= 10
                 data.loc[index, 'SIGNAL'] = 'MARKET_STOP'
                 data.loc[index, 'SELL_PRICE'] = row['open']
                 take_profit = None
