@@ -6,9 +6,7 @@ import talib
 import json
 
 from indicators.super_trend import super_trend
-from strategies.doubleST.signals.long_open import long_buy
-from strategies.doubleST.signals.long_close import long_sell
-from strategies.doubleST.signals.short_open import short_buy
+from signals.withDoubleTrend import WithDoubleTrend
 
 __all__ = "DoubleST_Strategy"
 
@@ -42,21 +40,23 @@ class DoubleST:
         orders = []  # list of orders
         take_profit = None
 
+        widthDT = WithDoubleTrend()
+
         for index, row in data.iterrows():
             # config
-            if all(pd.isnull(row[col]) for col in ['ST_FAST_UP', 'ST_FAST_LOW', 'ST_SLOW_UP', 'ST_SLOW_LOW']):
+            if index == 0:
                 continue
             elif index == len(data) - 1 and stocks > 0:
                 orders.append({'order': 'SELL_LIMIT', 'signal': 'LONG_SELL', 'price': row['open']})
 
                 # signals
             if stocks == 0:
-                price = long_buy(data.loc[index - 1], row)
+                price = widthDT.long_open(data.loc[index - 1], row)
                 if price is not None:
                     orders.clear()
                     orders.append(price)
             elif stocks > 0:
-                price = long_sell(row)
+                price = widthDT.long_close(row)
                 if price is not None:
                     orders.clear()
                     orders.append(price)

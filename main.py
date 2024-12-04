@@ -8,7 +8,7 @@ import time
 from logging.handlers import RotatingFileHandler
 from services.downloader import Downloader
 from services.manager import Manager
-from strategies.doubleST.main import DoubleST
+from terminals.main import DoubleST
 from accounts.alor import AlorAccount
 from configurations.alor import AlorConfiguration
 

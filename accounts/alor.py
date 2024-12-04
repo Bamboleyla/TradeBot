@@ -5,7 +5,7 @@ from api.client import AlorClientService
 from configurations.alor import AlorConfiguration
 from services.downloader import Downloader
 from services.manager import Manager
-from strategies.doubleST.main import DoubleST
+from terminals.main import DoubleST
 
 
 class AlorAccount:
