@@ -16,7 +16,8 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
     data['upper_slow'] = data['high'] + (config.iloc[1]['multiplier'] * data['ATR_slow'])
     data['lower_slow'] = data['low'] - (config.iloc[1]['multiplier'] * data['ATR_slow'])
 
-    data = data.assign(ST_FAST_UP=None, ST_FAST_LOW=None, ST_SLOW_UP=None, ST_SLOW_LOW=None)
+    data = data.assign(ST_FAST_UP=pd.Series(dtype=float), ST_FAST_LOW=pd.Series(dtype=float),
+                       ST_SLOW_UP=pd.Series(dtype=float), ST_SLOW_LOW=pd.Series(dtype=float))
 
     # calculate SuperTrends
     prev_trend_fast = 'lower'

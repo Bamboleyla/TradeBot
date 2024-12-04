@@ -40,7 +40,7 @@ class DoubleST:
         orders = []  # list of orders
         take_profit = None
 
-        widthDT = WithDoubleTrend()
+        widthDT = WithDoubleTrend(var_take)
 
         for index, row in data.iterrows():
             # config

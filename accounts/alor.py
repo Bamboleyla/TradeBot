@@ -1,5 +1,6 @@
 import asyncio
 import pandas as pd
+import finplot as fplt
 
 from api.client import AlorClientService
 from configurations.alor import AlorConfiguration
@@ -29,6 +30,23 @@ class AlorAccount:
                 dir = manager.get_directory()
                 double_st = DoubleST(dir)
                 chart = double_st.run(two_days_quotes)
-                print(chart)
+
+                self.show(chart)
             else:
                 pass
+
+    def show(self, data: pd.DataFrame) -> None:
+
+        # candlestick
+        data.set_index('date', inplace=True)
+        data.index = pd.to_datetime(data.index).tz_localize('Etc/GMT-5')
+
+        fplt.candlestick_ochl(data[['open', 'close', 'high', 'low']])
+        fplt.plot(data['ST_FAST_UP'], legend='ST_FAST_UP', color='#FF0000', width=2)
+        fplt.plot(data['ST_FAST_LOW'], legend='ST_FAST_LOW', color='#228B22', width=2)
+        fplt.plot(data['ST_SLOW_UP'], legend='ST_SLOW_UP', color='#B22222', width=3)
+        fplt.plot(data['ST_SLOW_LOW'], legend='ST_SLOW_LOW', color='#006400', width=3)
+        fplt.plot(data['EMA'], legend='EMA')
+
+        fplt.add_legend('Double SuperTrend')
+        fplt.show()

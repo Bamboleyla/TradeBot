@@ -2,8 +2,8 @@ import pandas as pd
 
 
 class WithDoubleTrend():
-    def __init__(self):
-        pass
+    def __init__(self, var_take):
+        self.__var_take = var_take
 
     def run(self, position: int, previous: pd.DataFrame, current: pd.DataFrame):
         if position == 0:
