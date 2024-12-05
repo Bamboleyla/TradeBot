@@ -2,6 +2,7 @@ import asyncio
 import pandas as pd
 import finplot as fplt
 
+from datetime import datetime, timezone, timedelta
 from api.client import AlorClientService
 from configurations.alor import AlorConfiguration
 from services.downloader import Downloader
@@ -20,22 +21,36 @@ class AlorAccount:
     def run(self):
         loader = Downloader()
         asyncio.run(loader.run())
+
+        def download_two_days_quotes():
+            quotes = manager.get_quotes()  # get quotes
+            quotes['date'] = pd.to_datetime(quotes['date'])  # Convert 'date' column to datetime type
+            two_days_quotes = quotes[quotes['date'] >= quotes['date'].dt.strftime('%Y%m%d').unique()[-2] + ' 10:00:00']  # get last 2 days
+            dir = manager.get_directory()
+            double_st = DoubleST(dir)
+            chart = double_st.run(two_days_quotes)
+            chart.to_csv(dir+'/chart.csv', index=False)  # write quotes to file
+            return chart
+
         for ticker in ['SBER', 'BSPB']:
             manager = Manager(ticker)
             chart = manager.get_chart()
             if chart is None:
-                quotes = manager.get_quotes()  # get quotes
-                quotes['date'] = pd.to_datetime(quotes['date'])  # Convert 'date' column to datetime type
-                two_days_quotes = quotes[quotes['date'] >= quotes['date'].dt.strftime('%Y%m%d').unique()[-2] + ' 10:00:00']  # get last 2 days
-                dir = manager.get_directory()
-                double_st = DoubleST(dir)
-                chart = double_st.run(two_days_quotes)
+                chart = download_two_days_quotes()
 
-                self.show(chart)
             else:
-                pass
+                last_time = datetime.strptime(chart.iloc[-1]["date"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=3)))
+                now = datetime.now(timezone(timedelta(hours=3)))
+                if (((now - last_time).total_seconds() / 60) > 10):
+                    chart = download_two_days_quotes()
 
-    def show(self, data: pd.DataFrame) -> None:
+                else:
+                    data = asyncio.run(self.__client.ws_history_date(ticker, last_time))
+                    print(data)
+
+            # self.show(chart, ticker)
+
+    def show(self, data: pd.DataFrame, ticker: str) -> None:
 
         # candlestick
         data.set_index('date', inplace=True)
@@ -48,5 +63,5 @@ class AlorAccount:
         fplt.plot(data['ST_SLOW_LOW'], legend='ST_SLOW_LOW', color='#006400', width=3)
         fplt.plot(data['EMA'], legend='EMA')
 
-        fplt.add_legend('Double SuperTrend')
+        fplt.add_legend(ticker)
         fplt.show()

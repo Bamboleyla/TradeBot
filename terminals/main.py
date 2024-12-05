@@ -20,17 +20,14 @@ class DoubleST:
         with open(os.path.join(self.__directory, 'config.json'), 'r') as f:
             config = json.load(f)
             self.__var_take = config['var_take']
-            self.__period = config['period']
-            self.__multiplier = config['multiplier']
+            self.__super_trends = config['indicators']['super_trends']
 
     def run(self, quotes: pd.DataFrame) -> pd.DataFrame:
         data = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
 
-        data['EMA'] = talib.EMA(data['close'].values, timeperiod=50)
+        data['EMA 50'] = talib.EMA(data['close'].values, timeperiod=50)
 
-        config = pd.DataFrame({'period': self.__period, 'multiplier': self.__multiplier})
-
-        return super_trend(config, data)  # calculate SuperTrends
+        return super_trend(self.__super_trends, data)  # calculate SuperTrends
 
     def calculate(self, data: pd.DataFrame, var_take: float = None) -> pd.DataFrame:
         if var_take is None:
