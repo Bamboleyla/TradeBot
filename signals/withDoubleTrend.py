@@ -2,8 +2,12 @@ import pandas as pd
 
 
 class WithDoubleTrend():
-    def __init__(self, var_take):
-        self.__var_take = var_take
+    def __init__(self, params: dict):
+        self.__var_take = params['var_take']
+        self.__fast_up = params['indicators']['fast_up']
+        self.__fast_down = params['indicators']['fast_down']
+        self.__slow_up = params['indicators']['slow_up']
+        self.__slow_down = params['indicators']['slow_down']
 
     def run(self, position: int, previous: pd.DataFrame, current: pd.DataFrame):
         if position == 0:
@@ -13,14 +17,14 @@ class WithDoubleTrend():
             return self.__long_close(current)
 
     def __long_open(self, previous: pd.DataFrame, current: pd.DataFrame) -> dict:
-        if pd.notna(previous['ST_FAST_UP']) and pd.notna(previous['ST_SLOW_LOW']) and pd.notna(current['ST_FAST_LOW']) and pd.notna(current['ST_SLOW_LOW']):
-            if previous['close'] <= previous['ST_FAST_UP'] and previous['close'] > previous['ST_SLOW_LOW']:
-                if current['open'] > current['ST_FAST_LOW'] and current['open'] > current['ST_SLOW_LOW']:
-                    return {'signal': 'LONG_BUY', 'order': 'BUY_LIMIT', 'price': previous['ST_FAST_UP']}
+        if pd.notna(previous[self.__fast_up]) and pd.notna(previous[self.__slow_down]) and pd.notna(current[self.__fast_down]) and pd.notna(current[self.__slow_down]):
+            if previous['close'] <= previous[self.__fast_up] and previous['close'] > previous[self.__slow_down]:
+                if current['open'] > current[self.__fast_down] and current['open'] > current[self.__slow_down]:
+                    return {'signal': 'LONG_BUY', 'order': 'BUY_LIMIT', 'price': previous[self.__fast_up]}
 
     def __long_close(self, row: pd.DataFrame) -> dict:
-        if pd.notna(row['ST_FAST_LOW']):
-            if row['close'] < row['ST_FAST_LOW'] or row['open'] < row['ST_FAST_LOW']:
+        if pd.notna(row[self.__fast_down]):
+            if row['close'] < row[self.__fast_down] or row['open'] < row[self.__fast_down]:
                 return {'signal': 'LONG_SELL', 'order': 'SELL_LIMIT', 'price': row['close']}
 
     def __short_open(self):

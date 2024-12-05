@@ -4,17 +4,31 @@ import talib
 
 def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
 
-    def create_supet_trend_lines(period: int, multiplier: int):
+    def create_supet_trend_lines(period: int, multiplier: int) -> None:
+        """Create SuperTrend lines for the given period and multiplier.
+
+        This function calculates the Average True Range (ATR) for a specified period
+        and uses it to determine the upper and lower SuperTrend lines by applying
+        the specified multiplier.
+
+        Args:
+            period (int): The period over which to calculate the ATR.
+            multiplier (int): The multiplier to apply to the ATR for the SuperTrend lines.
+        """
+        # Define column names for ATR and SuperTrend lines
         name_ATR = f'ATR {period}'
         name_upper_line = f'UP {multiplier}'
         name_lower_line = f'LOW {multiplier}'
 
+        # Calculate ATR for the given period
         data[name_ATR] = talib.ATR(data['high'].values, data['low'].values, data['close'].values,
-                                   timeperiod=period)  # calculate ATR for first period
+                                   timeperiod=period)
 
+        # Calculate upper and lower SuperTrend lines using the multiplier
         data[name_upper_line] = data['high'] + (multiplier * data[name_ATR])
         data[name_lower_line] = data['low'] - (multiplier * data[name_ATR])
 
+        # Initialize columns for the SuperTrend values
         data[f'ST {period} {multiplier} UP'] = pd.Series(dtype=float)
         data[f'ST {period} {multiplier} LOW'] = pd.Series(dtype=float)
 
@@ -25,14 +39,21 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
     prev_trend = ['lower', 'lower']
 
     def calculate_trend(prefix: str, name: str, trend: str) -> None:
+        """Calculate the SuperTrend value for a given period and multiplier based on the previous value and the current close/open price.
+
+        The function takes into account the previous trend (lower or upper) and the current close/open price to determine the current SuperTrend value.
+
+        Args:
+            prefix (str): The prefix for the column names of the upper and lower SuperTrend lines.
+            name (str): The name of the column in the data DataFrame to store the SuperTrend value.
+            trend (str): The previous trend (lower or upper).
+        """
         if pd.isnull(row[f'UP {prefix}']) or pd.isnull(row[f'LOW {prefix}']):
             return
-
         upper = round(row[f'UP {prefix}'], 2) if pd.isnull(data.loc[index - 1, name+' UP']
                                                            ) else round(min(data.loc[index - 1, name+' UP'], row[f'UP {prefix}']), 2)
         lower = round(row[f'LOW {prefix}'], 2) if pd.isnull(data.loc[index - 1, name+' LOW']
                                                             ) else round(max(data.loc[index - 1, name+' LOW'], row[f'LOW {prefix}']), 2)
-
         close = row['close']
         open = row['open']
 
@@ -74,6 +95,11 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
             calculate_trend(params['multiplier'], f'ST {params['period']} {params['multiplier']}', prev_trend[i])
 
     for params in config:
-        data.drop(columns=[f'ATR {params['period']}', f'UP {params['multiplier']}', f'LOW {params['multiplier']}'], inplace=True)
+        columns_to_drop = [
+            f'ATR {params["period"]}',
+            f'UP {params["multiplier"]}',
+            f'LOW {params["multiplier"]}',
+        ]
+        data.drop(columns=columns_to_drop, inplace=True)
 
     return data

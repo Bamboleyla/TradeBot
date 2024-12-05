@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 class DoubleST:
     def __init__(self, directory: str):
         self.__directory = directory
+        self.__indicators_aleases = {
+            'fast_up': 'ST 10 3 UP',
+            'fast_down': 'ST 10 3 LOW',
+            'slow_up': 'ST 20 5 UP',
+            'slow_down': 'ST 20 5 LOW'
+        }
 
         with open(os.path.join(self.__directory, 'config.json'), 'r') as f:
             config = json.load(f)
@@ -37,7 +43,12 @@ class DoubleST:
         orders = []  # list of orders
         take_profit = None
 
-        widthDT = WithDoubleTrend(var_take)
+        params = {
+            'var_take': var_take,
+            'indicators': self.__indicators_aleases
+        }
+
+        widthDT = WithDoubleTrend(params)
 
         for index, row in data.iterrows():
             # config
@@ -142,11 +153,11 @@ class DoubleST:
         data.index = pd.to_datetime(data.index).tz_localize('Etc/GMT-5')
 
         fplt.candlestick_ochl(data[['open', 'close', 'high', 'low']])
-        fplt.plot(data['ST_FAST_UP'], legend='ST_FAST_UP', color='#FF0000', width=2)
-        fplt.plot(data['ST_FAST_LOW'], legend='ST_FAST_LOW', color='#228B22', width=2)
-        fplt.plot(data['ST_SLOW_UP'], legend='ST_SLOW_UP', color='#B22222', width=3)
-        fplt.plot(data['ST_SLOW_LOW'], legend='ST_SLOW_LOW', color='#006400', width=3)
-        fplt.plot(data['EMA'], legend='EMA')
+        fplt.plot(data[self.__indicators_aleases['fast_up']], legend='ST_FAST_UP', color='#FF0000', width=2)
+        fplt.plot(data[self.__indicators_aleases['fast_down']], legend='ST_FAST_LOW', color='#228B22', width=2)
+        fplt.plot(data[self.__indicators_aleases['slow_up']], legend='ST_SLOW_UP', color='#B22222', width=3)
+        fplt.plot(data[self.__indicators_aleases['slow_down']], legend='ST_SLOW_LOW', color='#006400', width=3)
+        fplt.plot(data['EMA 50'], legend='EMA 50')
         fplt.plot(data['TAKE_PROFIT'], legend='TAKE_PROFIT', width=1, color='g')
 
         fplt.plot(data['BUY_PRICE'], color='b', style='x', width=2)
