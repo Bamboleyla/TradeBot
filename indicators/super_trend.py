@@ -2,7 +2,7 @@ import pandas as pd
 import talib
 
 
-def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
+def super_trend(config: pd.DataFrame, data: pd.DataFrame, last_data: pd.DataFrame = None) -> pd.DataFrame:
 
     def create_supet_trend_lines(period: int, multiplier: int) -> None:
         """Create SuperTrend lines for the given period and multiplier.
@@ -36,7 +36,19 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
         create_supet_trend_lines(params['period'], params['multiplier'])
 
     # calculate SuperTrends
-    prev_trend = ['lower', 'lower']
+    prev_trend = ['lower'] * len(config)
+
+    if last_data is not None:
+        prev_trend.clear()
+        for params in config:
+            upper = f'ST {params["period"]} {params["multiplier"]} UP'
+            lower = f'ST {params["period"]} {params["multiplier"]} LOW'
+            if (last_data.iloc[-1][upper] is not None):
+                prev_trend.append('upper')
+            elif (last_data.iloc[-1][lower] is not None):
+                prev_trend.append('lower')
+            else:
+                raise ValueError("error:006 Something went wrong")
 
     def calculate_trend(prefix: str, name: str, trend: str) -> None:
         """Calculate the SuperTrend value for a given period and multiplier based on the previous value and the current close/open price.
@@ -48,8 +60,15 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame) -> pd.DataFrame:
             name (str): The name of the column in the data DataFrame to store the SuperTrend value.
             trend (str): The previous trend (lower or upper).
         """
+        # Check if the upper and lower SuperTrend lines are None
         if pd.isnull(row[f'UP {prefix}']) or pd.isnull(row[f'LOW {prefix}']):
+            # If there last data, copy the values from it
+            if last_data is not None:
+                data.loc[index, name + ' UP'] = last_data.loc[index, name + ' UP']
+                data.loc[index, name + ' LOW'] = last_data.loc[index, name + ' LOW']
+            # If last data is None, stop the calculation
             return
+
         upper = round(row[f'UP {prefix}'], 2) if pd.isnull(data.loc[index - 1, name+' UP']
                                                            ) else round(min(data.loc[index - 1, name+' UP'], row[f'UP {prefix}']), 2)
         lower = round(row[f'LOW {prefix}'], 2) if pd.isnull(data.loc[index - 1, name+' LOW']

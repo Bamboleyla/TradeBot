@@ -29,11 +29,45 @@ class DoubleST:
             self.__super_trends = config['indicators']['super_trends']
 
     def run(self, quotes: pd.DataFrame) -> pd.DataFrame:
-        data = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
+        """
+        Read data from 'dobleST.csv' file, calculate SuperTrend indicators if they are not already in the data and return the result.
 
-        data['EMA 50'] = talib.EMA(data['close'].values, timeperiod=50)
+        If the SuperTrend indicators are already in the data, read the data from the file and return it. Otherwise, calculate the SuperTrend indicators
+        and save the result to the 'dobleST.csv' file.
+        """
+        with open(os.path.join(self.__directory, 'dobleST.csv'), 'r') as f:
+            data = pd.read_csv(f, header=0)
+            max_period = 0
+            for indicator in self.__super_trends:
+                # check if the SuperTrend indicators not are already in the data
+                if f'ST {indicator["period"]} {indicator["multiplier"]} UP' not in data.columns or f'ST {indicator["period"]} {indicator["multiplier"]} LOW' not in data.columns:
+                    # calculate the SuperTrend indicators
+                    copy = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
+                    copy['EMA 50'] = talib.EMA(quotes['close'].values, timeperiod=50)
 
-        return super_trend(self.__super_trends, data)  # calculate SuperTrends
+                    # return the calculated SuperTrend indicators
+                    return super_trend(self.__super_trends, copy)
+
+                # Update max_period with the maximum period from the indicators
+                max_period = max(max_period, indicator['period'])
+
+            # Calculate 50-period EMA for the closing prices
+            quotes['EMA 50'] = talib.EMA(quotes['close'].values, timeperiod=50)
+
+            # Extract the data corresponding to the last max_period entries
+            empty_data = quotes.iloc[len(data) - max_period:]
+
+            # Get the last max_period data from existing data
+            last_data = data.iloc[-max_period:]
+
+            # Calculate new SuperTrend indicators
+            new_data = super_trend(self.__super_trends, empty_data, last_data)
+
+            # Remove the 'volume' column from the new data
+            new_data = new_data.drop(columns=['volume'])
+
+            # Concatenate the existing data with the newly calculated data, excluding the initial max_period entries
+            return pd.concat([data, new_data.iloc[max_period:]], ignore_index=True)
 
     def calculate(self, data: pd.DataFrame, var_take: float = None) -> pd.DataFrame:
         if var_take is None:

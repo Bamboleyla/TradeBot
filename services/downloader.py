@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 class Downloader:
     def __init__(self) -> None:
         config = AlorConfiguration()  # Load ALOR broker configuration
-        self.tickers = config.tickers  # list of tickers
-        self.indexes = ['IMOEX']
+        self.__tickers = config.tickers  # list of tickers
+        self.__indexes = ['IMOEX']
 
-    async def run(self) -> pd.DataFrame:
+    async def run(self, tickers: list = None, indexes: list = None) -> pd.DataFrame:
         file = FileService()
         client = AlorClientService()
 
@@ -36,13 +36,16 @@ class Downloader:
                 file.update_file(ticker, quotes, data,)  # update file
                 quotes.to_csv(file_path, index=False)  # write quotes to file
 
-        percent_step = 100/(len(self.tickers) + len(self.indexes))  # initial percentage
+        tickers = self.__tickers if tickers is None else tickers
+        indexes = self.__indexes if indexes is None else indexes
+
+        percent_step = 100/(len(tickers) + len(indexes))  # initial percentage
         percentage = 0.0
 
         logger.info("Start downloading...")
         print("Start downloading...")
 
-        for ticker in self.tickers:
+        for ticker in tickers:
 
             file_path = os.path.join(os.path.dirname(os.path.dirname(__file__))+'\\tickers\\', ticker, 'data.csv')  # file path for ticker
 
@@ -53,7 +56,7 @@ class Downloader:
             logger.info(f"Downloaded {ticker} quotes, {percentage:.2f}% completed")
             print(f"Downloaded {ticker} quotes, {percentage:.2f}% completed")
 
-        for index in self.indexes:
+        for index in indexes:
             file_path = os.path.join(os.path.dirname(os.path.dirname(__file__))+'\\indexes\\', index, 'data.csv')  # file path for index
 
             await update_quotes(file_path, index)

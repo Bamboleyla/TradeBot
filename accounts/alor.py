@@ -20,7 +20,7 @@ class AlorAccount:
 
     def run(self):
         loader = Downloader()
-        asyncio.run(loader.run())
+        asyncio.run(loader.run(tickers=['SBER', 'BSPB'], indexes=[]))
 
         def download_two_days_quotes():
             quotes = manager.get_quotes()  # get quotes
