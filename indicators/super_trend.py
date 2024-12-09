@@ -43,9 +43,9 @@ def super_trend(config: pd.DataFrame, data: pd.DataFrame, last_data: pd.DataFram
         for params in config:
             upper = f'ST {params["period"]} {params["multiplier"]} UP'
             lower = f'ST {params["period"]} {params["multiplier"]} LOW'
-            if (last_data.iloc[-1][upper] is not None):
+            if (not pd.isnull(last_data.iloc[-1][upper])):
                 prev_trend.append('upper')
-            elif (last_data.iloc[-1][lower] is not None):
+            elif (not pd.isnull(last_data.iloc[-1][lower])):
                 prev_trend.append('lower')
             else:
                 raise ValueError("error:006 Something went wrong")
