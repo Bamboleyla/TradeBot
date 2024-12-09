@@ -7,6 +7,7 @@ import json
 
 from indicators.super_trend import super_trend
 from signals.withDoubleTrend import WithDoubleTrend
+from services.position import Position
 
 __all__ = "DoubleST_Strategy"
 
@@ -73,7 +74,6 @@ class DoubleST:
         if var_take is None:
             var_take = self.__var_take
 
-        position = 0  # amount of stocks
         orders = []  # list of orders
         take_profit = None
 
@@ -81,10 +81,11 @@ class DoubleST:
             'var_take': var_take,
             'indicators': self.__indicators_aleases
         }
-
+        pos = Position()
         widthDT = WithDoubleTrend(params)
 
         for index, row in data.iterrows():
+            position = pos.get_size()  # amount of stocks
             # config
             if index == 0:
                 continue
@@ -92,7 +93,8 @@ class DoubleST:
                 orders.append({'id': index, 'order': 'SELL_LIMIT', 'signal': 'LONG_SELL', 'price': row['open']})
 
             # signals
-            price = widthDT.run(position, data.loc[index - 1], row)
+            price = widthDT.run(position=position, previous=data.loc[index - 1], current=row)
+
             if price is not None:
                 price['id'] = index
                 orders.append(price)
@@ -102,14 +104,14 @@ class DoubleST:
                 for order in orders:
                     if order['order'] == 'BUY_LIMIT':
                         if order['price'] <= row['high'] and order['price'] >= row['low']:
-                            position += 10
+                            pos.increase(10)
                             data.loc[index, 'SIGNAL'] = order['signal']
                             data.loc[index, 'BUY_PRICE'] = order['price']
                             take_profit = round(order['price'] + var_take, 2)
                             orders = list(filter(lambda item: item['id'] != order['id'], orders))
                     elif order['order'] == 'SELL_LIMIT':
                         if order['price'] <= row['high'] and order['price'] >= row['low']:
-                            position -= 10
+                            pos.decrease(10)
                             data.loc[index, 'SIGNAL'] = order['signal']
                             data.loc[index, 'SELL_PRICE'] = order['price']
                             orders = list(filter(lambda item: item['id'] != order['id'], orders))
@@ -118,7 +120,7 @@ class DoubleST:
                 # take-profits
             if take_profit is not None:
                 if take_profit <= row['high'] and take_profit >= row['low']:
-                    position -= 10
+                    pos.decrease(10)
                     data.loc[index, 'SIGNAL'] = 'TAKE_PROFIT'
                     data.loc[index, 'SELL_PRICE'] = take_profit
                     take_profit = None
@@ -126,7 +128,7 @@ class DoubleST:
                     data.loc[index, 'TAKE_PROFIT'] = take_profit
 
             if position > 0 and pd.to_datetime(row['date']).time() == pd.Timestamp('23:45:00').time():
-                position -= 10
+                pos.decrease(10)
                 data.loc[index, 'SIGNAL'] = 'MARKET_STOP'
                 data.loc[index, 'SELL_PRICE'] = row['open']
                 take_profit = None

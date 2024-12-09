@@ -20,7 +20,8 @@ class WithDoubleTrend():
         if pd.notna(previous[self.__fast_up]) and pd.notna(previous[self.__slow_down]) and pd.notna(current[self.__fast_down]) and pd.notna(current[self.__slow_down]):
             if previous['close'] <= previous[self.__fast_up] and previous['close'] > previous[self.__slow_down]:
                 if current['open'] > current[self.__fast_down] and current['open'] > current[self.__slow_down]:
-                    return {'signal': 'LONG_BUY', 'order': 'BUY_LIMIT', 'price': previous[self.__fast_up]}
+                    price = previous[self.__fast_up]
+                    return {'signal': 'LONG_BUY', 'order': 'BUY_LIMIT', 'price': price, 'take_profit': price + self.__var_take}
 
     def __long_close(self, row: pd.DataFrame) -> dict:
         if pd.notna(row[self.__fast_down]):
