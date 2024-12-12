@@ -1,14 +1,18 @@
+import pandas as pd
 
 
 class Position():
     def __init__(self):
-        self.__position = 0
+        self.__position = {}
 
-    def get_size(self):
-        return self.__position
+    def get_size(self, strategy: str = None) -> int:
+        if strategy is None:
+            return sum(self.__position.values())
+        else:
+            return self.__position.get(strategy, 0)
 
-    def increase(self, num: int):
-        self.__position += num
+    def increase(self, strategy: str, quantity: int):
+        self.__position[strategy] = self.__position.get(strategy, 0) + quantity
 
-    def decrease(self, num: int):
-        self.__position -= num
+    def decrease(self, strategy: str, quantity: int):
+        self.__position[strategy] = self.__position.get(strategy, 0) - quantity

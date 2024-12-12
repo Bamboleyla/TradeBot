@@ -6,10 +6,9 @@ import talib
 import json
 
 from indicators.super_trend import super_trend
-from signals.withDoubleTrend import WithDoubleTrend
+from strategies.withDoubleTrend import WithDoubleTrend
 from services.position import Position
 from services.orders import Orders
-from datetime import datetime
 
 __all__ = "DoubleST_Strategy"
 
@@ -83,16 +82,16 @@ class DoubleST:
 
         position = Position()
         orders = Orders(position)
-        widthDT = WithDoubleTrend(params, orders)
+        widthDT = WithDoubleTrend(params, orders, position)
 
         for index, row in data.iterrows():
             # config
             if index == 0:
                 continue
-            elif index == len(data) - 1 and position.get_size() > 0:
-                orders.create({'id': index, 'order': 'SELL_LIMIT', 'signal': 'LONG_SELL', 'price': row['open']})
+            elif index == len(data) - 1 and position.get_size(widthDT.name) > 0:
+                orders.create({'id': index, 'strategy': widthDT.name, 'signal': 'LONG_SELL', 'order': 'SELL_LIMIT',  'price': row['open']})
 
-            widthDT.run(position=position.get_size(), previous=data.loc[index - 1], current=row)
+            widthDT.run(previous=data.loc[index - 1], current=row)
 
             orders.run(row, index)
 
