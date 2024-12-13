@@ -86,7 +86,6 @@ Please, enter mode:'''
             asyncio.run(loader.run())
         # Show
         elif mode == 2:
-
             start_time = time.time()
             manager = Manager('SBER')
             quotes = manager.get_quotes()

@@ -146,7 +146,6 @@ class DoubleST:
         return report
 
     def show(self, data: pd.DataFrame) -> None:
-        self.report(data)
 
         # candlestick
         data.set_index('date', inplace=True)
@@ -158,35 +157,40 @@ class DoubleST:
         fplt.plot(data[self.__indicators_aleases['slow_up']], legend='ST_SLOW_UP', color='#B22222', width=3)
         fplt.plot(data[self.__indicators_aleases['slow_down']], legend='ST_SLOW_LOW', color='#006400', width=3)
         fplt.plot(data['EMA 50'], legend='EMA 50')
-        fplt.plot(data['TAKE_PROFIT'], legend='TAKE_PROFIT', width=1, color='g')
 
-        fplt.plot(data['BUY_PRICE'], color='b', style='x', width=2)
+        if 'TAKE_PROFIT' in data.columns:
+            fplt.plot(data['TAKE_PROFIT'], legend='TAKE_PROFIT', width=1, color='g')
+        if 'STOP_LOSS' in data.columns:
+            fplt.plot(data['BUY_PRICE'], color='b', style='x', width=2)
+        if 'SELL_PRICE' in data.columns:
+            fplt.plot(data['SELL_PRICE'], color='b', style='x', width=2)
 
-        long_buy = data.loc[data['SIGNAL'] == 'LONG_BUY', 'BUY_PRICE']
-        if not long_buy.empty:
-            fplt.plot(long_buy-1, color='#4a5', style='^', legend='buy', width=2)
+        if 'SiGNAL' in data.columns:
+            long_buy = data.loc[data['SIGNAL'] == 'LONG_BUY', 'BUY_PRICE']
+            if not long_buy.empty:
+                fplt.plot(long_buy-1, color='#4a5', style='^', legend='buy', width=2)
 
-        fplt.plot(data['SELL_PRICE'], color='b', style='x', width=2)
+            long_sell = data.loc[data['SIGNAL'] == 'LONG_SELL', 'SELL_PRICE']
+            if not long_sell.empty:
+                fplt.plot(long_sell+1, color='#4a6', style='o', legend='sell', width=2)
 
-        long_sell = data.loc[data['SIGNAL'] == 'LONG_SELL', 'SELL_PRICE']
-        if not long_sell.empty:
-            fplt.plot(long_sell+1, color='#4a6', style='o', legend='sell', width=2)
+            long_take_profit = data.loc[data['SIGNAL'] == 'LONG_TAKE_PROFIT', 'SELL_PRICE']
+            if not long_take_profit.empty:
+                fplt.plot(long_take_profit+1, color='#4a5', style='p', legend='take profit', width=2)
 
-        long_take_profit = data.loc[data['SIGNAL'] == 'LONG_TAKE_PROFIT', 'SELL_PRICE']
-        if not long_take_profit.empty:
-            fplt.plot(long_take_profit+1, color='#4a5', style='p', legend='take profit', width=2)
+            short_buy = data.loc[data['SIGNAL'] == 'SHORT_BUY', 'BUY_PRICE']
+            if not short_buy.empty:
+                fplt.plot(short_buy-1, color='r', style='^', legend='short buy', width=2)
 
-        short_buy = data.loc[data['SIGNAL'] == 'SHORT_BUY', 'BUY_PRICE']
-        if not short_buy.empty:
-            fplt.plot(short_buy-1, color='r', style='^', legend='short buy', width=2)
+            short_sell = data.loc[data['SIGNAL'] == 'SHORT_SELL', 'SELL_PRICE']
+            if not short_sell.empty:
+                fplt.plot(short_sell+1, color='r', style='o', legend='short sell', width=2)
 
-        short_sell = data.loc[data['SIGNAL'] == 'SHORT_SELL', 'SELL_PRICE']
-        if not short_sell.empty:
-            fplt.plot(short_sell+1, color='r', style='o', legend='short sell', width=2)
+            short_take_profit = data.loc[data['SIGNAL'] == 'SHORT_TAKE_PROFIT', 'SELL_PRICE']
+            if not short_take_profit.empty:
+                fplt.plot(short_take_profit-1, color='r', style='p', legend='short take profit', width=2)
 
-        short_take_profit = data.loc[data['SIGNAL'] == 'SHORT_TAKE_PROFIT', 'SELL_PRICE']
-        if not short_take_profit.empty:
-            fplt.plot(short_take_profit-1, color='r', style='p', legend='short take profit', width=2)
+            self.report(data)  # create report
 
         fplt.add_legend('Double SuperTrend')
         fplt.show()
