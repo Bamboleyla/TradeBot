@@ -11,34 +11,17 @@ logger = logging.getLogger(__name__)
 
 class AlorConfiguration:
     def __init__(self) -> None:
-        """
-        Initialize an instance of AlorConfiguration.
-
-        This method reads configuration from file "settings.ini" and load
-        the following settings into the instance:
-
-        - mode: the mode of the broker (dev or prod)
-        - token: the JWT token for ALOR
-        - ttl_jwt: the time to live for the JWT token
-        - url_oauth: the URL for ALOR OAuth
-        - open: the time when the broker starts working
-        - close: the time when the broker stops working
-        - work_days: a list of days when the broker works
-        - websocket_url: the URL for the broker's websocket
-        - websocket_dev_url: the URL for the broker's dev websocket
-
-        :return: An instance of AlorConfiguration
-        """
-
-        self.mode: Literal['dev', 'prod'] = alor['mode']
-        self.token: str = alor['token']
-        self.ttl_jwt: int = alor['ttl_jwt']
-        self.url_oauth: str = alor['url_oauth']
-        self.open: int = alor['open']
-        self.close: int = alor['close']
-        self.work_days: list = alor['work_days']
-        self.websocket_url: str = alor['websocket_url']
-        self.websocket_dev_url: str = alor['websocket_url_dev']
+        self.contract: str = alor['contract']  # Alor contract
+        self.token: str = alor['token']  # Alor token
+        self.ttl_jwt: int = alor['ttl_jwt']  # Time to live JWT
+        self.url_oauth: str = alor['url_oauth']  # Alor OAuth URL
+        self.open: int = alor['open']  # Open time of Alor
+        self.close: int = alor['close']  # Close time of Alor
+        self.work_days: list = alor['work_days']  # List of work days
+        self.websocket_url: str = alor['websocket_url']  # Alor WebSocket URL
+        self.https_url: str = alor['https_url']  # Alor HTTPS URL
+        self.stock_market: str = alor['stock_market']  # Alor stock market
+        self.tickers: list = alor['tickers']  # List of tickers
 
     @property
     def is_work(self) -> bool:

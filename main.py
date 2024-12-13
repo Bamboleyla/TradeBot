@@ -8,7 +8,9 @@ import time
 from logging.handlers import RotatingFileHandler
 from services.downloader import Downloader
 from services.manager import Manager
-from strategies.doubleST.main import DoubleST
+from terminals.main import DoubleST
+from accounts.alor import AlorAccount
+from configurations.alor import AlorConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,9 @@ def prepare_logs() -> None:
 
 
 def prepare_tickers() -> None:
-    for ticker in tickers:
+    config = AlorConfiguration()
+
+    for ticker in config.tickers:
         # Check ticker directory
         if not os.path.exists('tickers/'+ticker+"/"):
             # Create ticker directory
@@ -62,7 +66,6 @@ if __name__ == "__main__":
     prepare_logs()  # Prepare logging system
     logger.info("Program start")
 
-    tickers = ['ALRS', 'BANE', 'BSPB', 'CBOM', 'CHMF', 'FLOT', 'GCHE', 'HEAD', 'LENT', 'MAGN', 'MOEX', 'ROSN', 'SBER', 'YDEX']  # Add your tickers here
     prepare_tickers()  # Prepare directories for tickers (if they don't exist)
 
     try:
@@ -70,6 +73,7 @@ if __name__ == "__main__":
     1 - download historical data;
     2 - show;
     3 - optimize;
+    4 - run;
     0 - exit;
                          
 Please, enter mode:'''
@@ -78,30 +82,42 @@ Please, enter mode:'''
         mode = int(input(message))
         # Download historical data
         if mode == 1:
-            loader = Downloader(tickers)
+            loader = Downloader()
             asyncio.run(loader.run())
         # Show
         elif mode == 2:
-            print('Start reading quotes...')
             start_time = time.time()
             manager = Manager('SBER')
             quotes = manager.get_quotes()
-
             quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
-            end_time = time.time()
-            print('Quotes completed...'+str(round(end_time-start_time, 3))+'s')
-            print('Start prepare data...')
-            start_time = time.time()
-            double_st = DoubleST(manager.get_directory())
+            quotes_completed = time.time()
+            print('Quotes completed...'+str(round(quotes_completed-start_time, 3))+'s')
 
-            data = double_st.run(quotes)
-            end_time = time.time()
-            print('Data completed...'+str(round(end_time-start_time, 3))+'s')
-            print('Start calculate...')
-            start_time = time.time()
+            dir = manager.get_directory()
+            double_st = DoubleST(dir)
+
+            # Check if file with data exists
+            if os.path.exists(os.path.join(dir, 'dobleST.csv')):
+                # Read data from file
+                dobleST = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
+            else:
+                # Create empty DataFrame with columns
+                dobleST = pd.DataFrame(columns=['ticker', 'date', 'open', 'high', 'low', 'close'])
+                # Write DataFrame to file
+                dobleST.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)
+                # Calculate data
+                dobleST = double_st.run(quotes)
+
+            # If the data and quotes have the same last dates, then there is no point in recalculating
+            data = dobleST if (dobleST['date'].iloc[-1] == str(quotes['date'].iloc[-1])) else double_st.run(quotes)
+            data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
+            data_completed = time.time()
+            print('Data completed...'+str(round(data_completed-quotes_completed, 3))+'s')
+
             data = double_st.calculate(data)
-            end_time = time.time()
-            print('Calculate completed...'+str(round(end_time-start_time, 3))+'s')
+            calculate_completed = time.time()
+            print('Calculate completed...'+str(round(calculate_completed-data_completed, 3))+'s')
+
             print('Start show...')
             double_st.show(data)
         # Optimize
@@ -112,6 +128,11 @@ Please, enter mode:'''
 
             double_st = DoubleST(manager.get_directory())
             double_st.optimize(data, {'start': 1.0, 'step': 0.1, 'end': 3.0})
+        # Run
+        elif mode == 4:
+            print("Start running...")
+            alor = AlorAccount()
+            alor.run()
         # Exit
         elif mode == 0:
             print("Program exit")

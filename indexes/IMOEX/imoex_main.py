@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from services.file import FileService
-from api.services.client import AlorClientService
+from api.client import AlorClientService
 
 __all__ = "IMOEX_Manager"
 
