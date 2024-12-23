@@ -24,7 +24,6 @@ class AlorClientService:
 
         self.access_token = token.get_access_token()['access_token']  # Get access token
         self.ws_url = config.websocket_url  # Get websocket url
-        self.is_work = config.is_work  # Check if ALOR is work
         self.__url = config.https_url+'/md/v2/Clients/'+config.stock_market+'/'+config.contract  # Get https url
         self.__headers = {'Accept': 'application/json', 'Authorization': 'Bearer ' + self.access_token}
 

@@ -1,6 +1,7 @@
 import asyncio
 import pandas as pd
 import os
+import time
 
 from datetime import datetime, timezone, timedelta
 from api.client import AlorClientService
@@ -20,20 +21,36 @@ class AlorAccount:
 
     def run(self):
         loader = Downloader()
-        asyncio.run(loader.run(tickers=['SBER', 'BSPB'], indexes=[]))
-        manager = Manager('SBER')
-        quotes = manager.get_quotes()
-        quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
+        if self.__config.is_work == True:
+            last_load_time = None
+            time_until_next_update = None
 
-        dir = manager.get_directory()
-        double_st = DoubleST(dir)
+            while self.__config.is_work:
+                if last_load_time is None or (time_until_next_update and time_until_next_update < timedelta(seconds=0)):
+                    asyncio.run(loader.run(tickers=['SBER'], indexes=[]))
+                    manager = Manager('SBER')
+                    quotes = manager.get_quotes()
+                    quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
 
-        dobleST = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
-        # If the data and quotes have the same last dates, then there is no point in recalculating
-        data = dobleST if (dobleST['date'].iloc[-1] == str(quotes['date'].iloc[-1])) else double_st.run(quotes)
-        data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
+                    dir = manager.get_directory()
+                    double_st = DoubleST(dir)
 
-        data['date'] = pd.to_datetime(data['date'])  # Convert 'date' column to datetime type
-        two_days_quotes = data[data['date'] >= data['date'].dt.strftime('%Y%m%d').unique()[-2] + ' 10:00:00']  # get last 2 days
+                    dobleST = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
+                    # If the data and quotes have the same last dates, then there is no point in recalculating
+                    data = dobleST if (dobleST['date'].iloc[-1] == str(quotes['date'].iloc[-1])) else double_st.run(quotes)
+                    data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
 
-        double_st.show(two_days_quotes)
+                    last_load_time = pd.to_datetime(data['date'].iloc[-1]).tz_localize('Etc/GMT-3')
+                    time.sleep(10)
+
+                else:
+                    time_now = datetime.now(timezone(timedelta(hours=3)))
+                    print(f"Current time (UTC+3): {time_now}")
+                    print(f"Last load time (UTC+3): {last_load_time}")
+                    time_until_next_update = ((last_load_time + timedelta(minutes=5)) - time_now)
+                    print(f"Time until next update: {time_until_next_update} seconds")
+                    time.sleep(10)
+
+        # data['date'] = pd.to_datetime(data['date'])  # Convert 'date' column to datetime type
+        # two_days_quotes = data[data['date'] >= data['date'].dt.strftime('%Y%m%d').unique()[-2] + ' 10:00:00']  # get last 2 days
+        # double_st.show(two_days_quotes)
