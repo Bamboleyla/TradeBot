@@ -32,9 +32,12 @@ class Downloader:
 
             data = await client.ws_history_date(ticker, last_date)  # get data from last date to now
 
-            if len(data) > 1:
+            if len(data) > 0:
                 file.update_file(ticker, quotes, data,)  # update file
                 quotes.to_csv(file_path, index=False)  # write quotes to file
+
+            else:
+                print(f"No data for {ticker}")
 
         tickers = self.__tickers if tickers is None else tickers
         indexes = self.__indexes if indexes is None else indexes

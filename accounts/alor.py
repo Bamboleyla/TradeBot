@@ -21,34 +21,41 @@ class AlorAccount:
 
     def run(self):
         loader = Downloader()
-        if self.__config.is_work == True:
-            last_load_time = None
+        if self.__config.is_work:
+
+            manager = Manager('SBER')
+            dir = manager.get_directory()
+
+            double_st = DoubleST(dir)
+
+            data = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
+
+            last_load_time = pd.to_datetime(data['date'].iloc[-1]).tz_localize('Etc/GMT-3')
             time_until_next_update = None
 
             while self.__config.is_work:
-                if last_load_time is None or (time_until_next_update and time_until_next_update < timedelta(seconds=0)):
+                time_now = datetime.now(timezone(timedelta(hours=3))).replace(microsecond=0)
+
+                if (last_load_time + timedelta(minutes=5)) < time_now:
                     asyncio.run(loader.run(tickers=['SBER'], indexes=[]))
-                    manager = Manager('SBER')
+
                     quotes = manager.get_quotes()
                     quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
 
-                    dir = manager.get_directory()
-                    double_st = DoubleST(dir)
+                    if data['date'].iloc[-1] != str(quotes['date'].iloc[-1]):
+                        data = double_st.run(quotes)
+                        data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
 
-                    dobleST = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
-                    # If the data and quotes have the same last dates, then there is no point in recalculating
-                    data = dobleST if (dobleST['date'].iloc[-1] == str(quotes['date'].iloc[-1])) else double_st.run(quotes)
-                    data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
+                        last_load_time = pd.to_datetime(data['date'].iloc[-1]).tz_localize('Etc/GMT-3').replace(microsecond=0)
+                        time_until_next_update = None
 
-                    last_load_time = pd.to_datetime(data['date'].iloc[-1]).tz_localize('Etc/GMT-3')
                     time.sleep(10)
 
                 else:
-                    time_now = datetime.now(timezone(timedelta(hours=3)))
-                    print(f"Current time (UTC+3): {time_now}")
-                    print(f"Last load time (UTC+3): {last_load_time}")
                     time_until_next_update = ((last_load_time + timedelta(minutes=5)) - time_now)
-                    print(f"Time until next update: {time_until_next_update} seconds")
+                    info = pd.DataFrame(columns=['time_now', 'last_load_time', 'time_until_next_update'])
+                    info.loc[len(info)] = [time_now, last_load_time, time_until_next_update]
+                    print(info)
                     time.sleep(10)
 
         # data['date'] = pd.to_datetime(data['date'])  # Convert 'date' column to datetime type
