@@ -32,12 +32,12 @@ class DoubleST:
 
     def run(self, quotes: pd.DataFrame) -> pd.DataFrame:
         """
-        Read data from 'dobleST.csv' file, calculate SuperTrend indicators if they are not already in the data and return the result.
+        Read data from 'explore.csv' file, calculate SuperTrend indicators if they are not already in the data and return the result.
 
         If the SuperTrend indicators are already in the data, read the data from the file and return it. Otherwise, calculate the SuperTrend indicators
-        and save the result to the 'dobleST.csv' file.
+        and save the result to the 'explore.csv' file.
         """
-        with open(os.path.join(self.__directory, 'dobleST.csv'), 'r') as f:
+        with open(os.path.join(self.__directory, 'explore.csv'), 'r') as f:
             data = pd.read_csv(f, header=0)
             max_period = 0
             for indicator in self.__super_trends:
@@ -46,6 +46,7 @@ class DoubleST:
                     # calculate the SuperTrend indicators
                     copy = quotes[['ticker', 'date', 'open', 'high', 'low', 'close']].copy()
                     copy['EMA 50'] = talib.EMA(quotes['close'].values, timeperiod=50)
+                    copy['EMA 50'] = copy['EMA 50'].round(2)
 
                     # return the calculated SuperTrend indicators
                     return super_trend(self.__super_trends, copy)
@@ -55,6 +56,7 @@ class DoubleST:
 
             # Calculate 50-period EMA for the closing prices
             quotes['EMA 50'] = talib.EMA(quotes['close'].values, timeperiod=50)
+            quotes['EMA 50'] = quotes['EMA 50'].round(2)
 
             # Extract the data corresponding to the last max_period entries
             empty_data = quotes.iloc[len(data) - max_period:]

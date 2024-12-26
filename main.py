@@ -97,20 +97,20 @@ Please, enter mode:'''
             double_st = DoubleST(dir)
 
             # Check if file with data exists
-            if os.path.exists(os.path.join(dir, 'dobleST.csv')):
+            if os.path.exists(os.path.join(dir, 'explore.csv')):
                 # Read data from file
-                dobleST = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
+                dobleST = pd.read_csv(os.path.join(dir, 'explore.csv'), header=0)
             else:
                 # Create empty DataFrame with columns
                 dobleST = pd.DataFrame(columns=['ticker', 'date', 'open', 'high', 'low', 'close'])
                 # Write DataFrame to file
-                dobleST.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)
+                dobleST.to_csv(os.path.join(dir, 'explore.csv'), index=False)
                 # Calculate data
                 dobleST = double_st.run(quotes)
 
             # If the data and quotes have the same last dates, then there is no point in recalculating
             data = dobleST if (dobleST['date'].iloc[-1] == str(quotes['date'].iloc[-1])) else double_st.run(quotes)
-            data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
+            data.to_csv(os.path.join(dir, 'explore.csv'), index=False)  # write data to file
             data_completed = time.time()
             print('Data completed...'+str(round(data_completed-quotes_completed, 3))+'s')
 

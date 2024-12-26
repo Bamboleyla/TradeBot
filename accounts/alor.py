@@ -21,9 +21,8 @@ class AlorAccount:
     def run(self):
         if self.__config.is_work:
             manager = Manager('SBER')
-            dir = manager.get_directory()
 
-            data = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
+            terminal = manager.get_terminal_data()
 
             def update():
                 loader = Downloader()
@@ -31,8 +30,8 @@ class AlorAccount:
                 dir = manager.get_directory()
                 double_st = DoubleST(dir)
 
-                data = pd.read_csv(os.path.join(dir, 'dobleST.csv'), header=0)
-                last_load_time = pd.to_datetime(data['date'].iloc[-1]).tz_localize('Etc/GMT-3')
+                terminal = manager.get_terminal()
+                last_load_time = pd.to_datetime(terminal['date'].iloc[-1]).tz_localize('Etc/GMT-3')
                 time_until_next_update = None
 
                 if self.__config.is_work:
@@ -44,15 +43,15 @@ class AlorAccount:
                         quotes = manager.get_quotes()
                         quotes['date'] = pd.to_datetime(quotes['date'], format='%Y%m%d %H:%M:%S')
 
-                        if data['date'].iloc[-1] != str(quotes['date'].iloc[-1]):
-                            data = double_st.run(quotes)
-                            data.to_csv(os.path.join(dir, 'dobleST.csv'), index=False)  # write data to file
+                        if terminal['date'].iloc[-1] != str(quotes['date'].iloc[-1]):
+                            terminal = double_st.run(quotes)
+                            terminal.to_csv(os.path.join(dir, 'explore.csv'), index=False)  # write data to file
 
-                            last_load_time = pd.to_datetime(data['date'].iloc[-1]).tz_localize('Etc/GMT-3').replace(microsecond=0)
+                            last_load_time = pd.to_datetime(terminal['date'].iloc[-1]).tz_localize('Etc/GMT-3').replace(microsecond=0)
                             time_until_next_update = None
 
                             # Update the live plot
-                            self.update_plot(data)
+                            self.update_plot(terminal)
 
                     else:
                         time_until_next_update = ((last_load_time + timedelta(minutes=5, seconds=20)) - time_now)
@@ -64,10 +63,10 @@ class AlorAccount:
             fplt.background = '#000000'
             fplt.cross_hair_color = '#FFFFFF'
 
-            data.set_index('date', inplace=True)
-            data.index = pd.to_datetime(data.index).tz_localize('Etc/GMT-5')
+            terminal.set_index('date', inplace=True)
+            terminal.index = pd.to_datetime(terminal.index).tz_localize('Etc/GMT-5')
 
-            fplt.candlestick_ochl(data[['open', 'close', 'high', 'low']].tail(100))
+            fplt.candlestick_ochl(terminal[['open', 'close', 'high', 'low']].tail(100))
             fplt.add_legend("SBER")
             fplt.timer_callback(update, 10)  # start update timer
             fplt.show()
