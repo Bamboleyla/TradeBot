@@ -27,9 +27,9 @@ class AlorClientService:
         self.__url = config.https_url+'/md/v2/Clients/'+config.stock_market+'/'+config.contract  # Get https url
         self.__headers = {'Accept': 'application/json', 'Authorization': 'Bearer ' + self.access_token}
 
-    async def ws_history_date(self, ticker: TickerType, start_date: datetime) -> List:
-
-        start_date += timedelta(minutes=5)  # add 5 minutes to the start date, because we need data from the past 5 minutes
+    async def ws_history_date(self, ticker: TickerType, start_date: datetime, timedelta: timedelta = None) -> List:
+        if timedelta is not None:
+            start_date += timedelta  # add 5 minutes to the start date, because we need data from the past 5 minutes
 
         responses = []  # list to store responses
 

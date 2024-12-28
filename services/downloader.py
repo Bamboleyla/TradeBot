@@ -2,6 +2,7 @@ import logging
 import os
 import pandas as pd
 
+from datetime import timedelta
 from services.file import FileService
 from configurations.alor import AlorConfiguration
 from api.client import AlorClientService
@@ -30,7 +31,7 @@ class Downloader:
             # get last date from file, if there is no data then it will be firs minute of first day of previous month
             last_date = file.get_last_date(quotes)
 
-            data = await client.ws_history_date(ticker, last_date)  # get data from last date to now
+            data = await client.ws_history_date(ticker, last_date, timedelta(minutes=5))  # get data from last date to now
 
             if len(data) > 0:
                 file.update_file(ticker, quotes, data,)  # update file
